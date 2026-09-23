@@ -41,3 +41,10 @@ The card stack is unchanged. Weight Means options now use title case, and Increm
 
 The new slider browser regression starts away from the visible thumb and drags beyond the strip; it checks slider isolation, keyboard input, haptic calls and unsupported-device fallback, labels, persistence and phone layout. The card-stack edge tests still pass.
 
+
+## Installed update and control alignment refinement
+
+Weight controls use centered vector symbols with unchanged touch targets. The green slider retains its opaque custom thumb and hides the disabled native input. Release 10 fetches versioned fresh assets, reads only its own offline cache, and reloads an older accepting client even if its original reload handler fails. New clients wait for pending saves before activation. Backup & settings displays Version 10. Workout storage and stack gestures are unchanged.
+
+Validation: 17 model/storage tests; browser checks for centered controls and complete-card palette; a local long-lived-cache upgrade from an older app with a deliberately disabled reload handler verified new symbols, invisible native slider, preserved completion and subsequent offline reload. This validates the recovery path, not the exact cause on the user's device.
+
