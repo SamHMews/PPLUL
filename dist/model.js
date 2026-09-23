@@ -10,9 +10,9 @@ export const SEED=[['Push','bench',80,8,2,'reported','exact','total weight'],['P
 export function createWeek(number,settings={}){return {id:crypto.randomUUID(),number,startedAt:new Date().toISOString(),archivedAt:null,bonus:false,days:Object.fromEntries(DAYS.map(day=>[day,{current:ROUTINES[day][0].id,entries:ROUTINES[day].map(e=>({...structuredClone(e),...settings[day+':'+e.id],completed:false,completedAt:null,weight:null,reps:null,effort:null,precision:'exact',variant:null}))}]))};}
 export function initialState(){return {schema:1,programmeVersion:2,revision:0,active:createWeek(1),archives:[],seed:structuredClone([...SEED,...SEPTEMBER_RESULTS]),settings:{},view:{page:'home',day:null}};}
 export const remaining=(session)=>session.entries.filter(e=>!e.completed);
-export function currentEntry(session){return remaining(session).find(e=>e.id===session.current)||remaining(session)[0];}
-export function navigate(session,delta){const r=remaining(session);if(!r.length)return;const i=r.findIndex(e=>e.id===session.current);session.current=r[(Math.max(0,i)+delta+r.length)%r.length].id;}
-export function completeEntry(session,id){const entry=session.entries.find(e=>e.id===id);if(!entry||entry.completed)return false;const r=remaining(session),i=r.findIndex(e=>e.id===id);entry.completed=true;entry.completedAt=new Date().toISOString();session.current=r.length>1?r[(i+1)%r.length].id:null;return true;}
+export function currentEntry(session){return session.entries.find(e=>e.id===session.current)||session.entries[0];}
+export function navigate(session,delta){const r=session.entries;if(!r.length)return;const i=r.findIndex(e=>e.id===session.current);session.current=r[(Math.max(0,i)+delta+r.length)%r.length].id;}
+export function completeEntry(session,id){const entry=session.entries.find(e=>e.id===id);if(!entry||entry.completed)return false;entry.completed=true;entry.completedAt=new Date().toISOString();return true;}
 export function archiveWeek(state){state.active.archivedAt=new Date().toISOString();state.archives.push(state.active);state.active=createWeek(state.active.number+1,state.settings);state.view={page:'home',day:null};}
 
 export const SEPTEMBER_RESULTS=[
@@ -65,7 +65,7 @@ export function migrateState(input){
   }
   session.entries=session.entries.filter(e=>!removed(e));
   for(const e of session.entries){e.variants=null;if(e.loadUnit===undefined)e.loadUnit=e.weight===null&&!e.completed?ROUTINES[day].find(x=>x.id===e.id)?.loadUnit??'kg':'kg';}
-  if(!session.entries.some(e=>e.id===session.current&&!e.completed))session.current=remaining(session)[0]?.id??null;
+  if(!session.entries.some(e=>e.id===session.current))session.current=session.entries[0]?.id??null;
  }
  for(const key of Object.keys(s.settings))if(key.endsWith(':hip-thrust'))delete s.settings[key];
  for(const result of SEPTEMBER_RESULTS)if(!s.seed.some(x=>x.sourceId===result.sourceId||x.date===result.date&&x.id===result.id&&x.day===result.day&&x.weight===result.weight&&x.reps===result.reps&&loadUnit(x)===loadUnit(result)))s.seed.push(structuredClone(result));

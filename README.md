@@ -7,12 +7,12 @@ An offline-first, iPhone-focused workout tracker built from `workout_app_handove
 Open the hosted app in Safari and choose Share → Add to Home Screen. Open it once online before going offline. The Windows computer does not need to stay on for the hosted app.
 
 - Five workout decks plus a one-tap Bonus tile.
-- Swipe across the card, including buttons; the reps slider has its own gesture. Left/right wraps through unfinished exercises. Arrow buttons and keyboard navigation are also supported.
+- Swipe across the card, including buttons; the reps slider has its own gesture. Left/right wraps through all exercises in a physical card stack. Drag to reveal the card underneath; release a short drag to return. Keyboard left/right navigation is also supported.
 - Working weight, reps and effort are optional. An untouched card completes without an invented log.
 - New rep entries use each exercise's prescribed range, with numbered stops and an optional short haptic tick on supported devices. Historical results are never clamped to the current range.
 - Dumbbells use 2.5 kg per hand. Other weight steps and units are configured on the exercise card. The first weight adjustment uses the previous actual weight when available; subsequent taps change it by the chosen step.
 - Exercise variant selectors have been removed. Programme changes belong in configuration.
-- Done saves, turns the card green briefly, then removes it from the deck. There is no completion toast. Undo is available through Workout options → Completed exercises. Tap Bonus again to undo it.
+- Done saves and turns the card green in place. Completed exercises remain in the same infinite deck. Tap Completed · Undo on the green card to undo it. There are no navigation arrows, swipe hints, workout menu or completion toast. Tap Bonus again to undo it.
 - New week explicitly confirms and saves the archived week and next week together, including unfinished drafts.
 - History includes the six earlier actual logs plus the four reported Legs results dated 23 September 2026. Leg Extension 175 × 10 and Calf Raises 22 × 10 have Unknown units and display no suffix. Weight set-up supports kg, lb and Unknown; no conversion is performed.
 - Hip Thrusts have been removed from the active programme. Existing archives are preserved, including any Hip Thrusts they contain. The current decks contain 8/8/5/7/6 exercises.
@@ -36,3 +36,8 @@ For tests, run `npm ci` then `npm test`.
 Automated model tests cover routine counts, bidirectional wraparound, removal, counters, null logs, historical precision, archive snapshots and backup validation. Storage tests exercise atomic save, failure rollback and stale-tab rejection. Browser checks cover direct entry, card drag, logging, reload/resume, Undo, archive confirmation and history.
 
 Still requires an actual iPhone 13 check: touch arbitration with the slider, lock/unlock, standalone installation, offline relaunch and restoration from a downloaded backup on another device. Desktop-sized and phone-sized browser checks cannot substitute for physical-device verification.
+
+## Card-stack browser regression tests
+
+With the local preview running and Playwright available, run `node tests/stack.browser.cjs` and `node tests/stack-edge.browser.cjs`. They use an isolated browser profile and exercise touch input, persistent card identity, return/release gestures, infinite wrapping, completion/Undo, storage failure and layout. Set `APP_URL` to test a deployment. `PLAYWRIGHT_MODULE` can point to an existing Playwright installation, and `BROWSER_CHANNEL` can select an installed browser such as `msedge`. Screenshots are saved in the ignored `test-artifacts/` folder.
+
