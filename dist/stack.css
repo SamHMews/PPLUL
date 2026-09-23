@@ -17,6 +17,7 @@ main[data-page=day]:has(.card-stack){padding-bottom:calc(1.75rem + env(safe-area
 .card-stack .unit{margin:0}
 .card-stack .exercise-card.is-complete button:disabled,.card-stack .exercise-card.is-complete input:disabled{opacity:.8;cursor:default;pointer-events:none}
 .card-stack .exercise-card.is-complete .done-button{opacity:1}
+.card-stack .exercise-card.is-complete input.range:disabled{opacity:0}
 .card-stack .is-complete{transition:background-color 160ms ease,border-color 160ms ease}
 @media(min-height:760px){.card-stack .exercise-card{padding:1.25rem;gap:.375rem}.card-stack .exercise-card h2{font-size:1.625rem}.card-stack .previous{padding:.625rem 0}}
 @media(prefers-reduced-motion:reduce){.card-stack .exercise-card{transform:none!important;transition:none;will-change:opacity}}
