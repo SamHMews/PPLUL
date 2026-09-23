@@ -34,3 +34,10 @@ Every exercise is a persistent, separately mounted card. Dragging moves the enti
 Arrows, Swipe to browse and Workout options have been removed. Available vertical space is distributed across the card instead of accumulating above Done. The completed state stays green and keeps its actual logs; Undo is available on the same card. Browsing never changes remaining counts.
 
 Regression coverage: physical DOM identity during drag, visible underlying neighbour, short-drag return, both-direction infinite wrapping, button-origin drags, slider isolation, mid-return re-grab, pointer cancellation, reduced motion, failure/Retry, completion persistence, all-completed browsing and Undo. All 34 mounted cards fit 375×667, 390×664 and 390×844. Physical iPhone touch feel remains to be checked on the device.
+
+## Slider usability refinement
+
+The card stack is unchanged. Weight Means options now use title case, and Increment/Custom Increment labels are consistent. The rep slider has a 52px-high touch strip and 32px visual thumb. Any position in the strip can begin a drag; pointer capture keeps it tracking outside the strip. Keyboard range semantics remain native. Discrete changes still request an 8ms vibration where supported; weight +/- changes now request the same small tick. Safari on iPhone does not provide the standard Vibration API, so tactile feedback cannot be guaranteed there. No notification vibrations, sound, or hidden-switch workarounds are added.
+
+The new slider browser regression starts away from the visible thumb and drags beyond the strip; it checks slider isolation, keyboard input, haptic calls and unsupported-device fallback, labels, persistence and phone layout. The card-stack edge tests still pass.
+
