@@ -1,0 +1,56 @@
+/* Compact workout surface. Rem-based sizing retains an accessible overflow
+   fallback for enlarged text and short landscape windows. */
+:root{font-size:100%;font-optical-sizing:auto;--muted:#b5adbd}
+body{overflow-x:clip}
+button{touch-action:manipulation}
+button:active{background-color:#44324f;color:#fff}
+.primary:active{background:#8966a7}
+.exercise-card{touch-action:pan-y pinch-zoom;transition:none;user-select:none;-webkit-user-select:none;will-change:auto}
+.exercise-card button{touch-action:pan-y pinch-zoom}
+.range{touch-action:none}
+.workout-nav{margin:0;min-height:2.75rem;display:flex;gap:.5rem}
+.workout-nav .back{margin:0;font-size:.875rem;flex:1}
+.workout-nav h1{font-size:1.375rem;letter-spacing:-.025em;text-align:center}
+.more-button{min-height:2.75rem;min-width:2.75rem;flex:1;text-align:right;color:var(--accent);letter-spacing:.12em}
+.workout-status{display:flex;justify-content:space-between;color:var(--muted);font-size:.75rem;margin:.25rem 0 .5rem}
+main[data-page=day]:has(.exercise-card){min-height:100svh;display:flex;flex-direction:column;padding:calc(.5rem + env(safe-area-inset-top)) 1rem calc(.5rem + env(safe-area-inset-bottom));gap:0}
+main[data-page=day] .progress{margin:0 0 .625rem}
+.exercise-card{padding:.875rem 1rem;border-radius:1.5rem;flex:1;display:flex;flex-direction:column}
+.exercise-card h2{font-size:1.375rem;letter-spacing:-.025em;line-height:1.15;margin:0 0 .5rem;min-height:2.3em;display:flex;align-items:center}
+.chips{gap:.375rem;align-items:center;min-height:2.75rem}
+.chip{font-size:.8125rem;padding:.25rem .5rem}
+button.chip{min-height:2.75rem}
+.weight-label{margin-top:.5rem;font-size:.8125rem;gap:.5rem}
+.weight-label button{min-height:2.75rem!important;font-size:.8125rem}
+.weight-stepper{margin:0;gap:.5rem}
+.step{width:2.75rem;height:2.75rem;border-radius:.875rem;font-size:1.625rem}
+.weight-value{font-size:2.25rem;letter-spacing:-.03em}
+.weight-value small{font-size:.875rem}
+.unit{font-size:.75rem;margin:.125rem 0}
+.previous{margin:.375rem 0;padding:.375rem 0;font-size:.75rem;line-height:1.35}
+.field-label{font-size:.8125rem}.rep-number{font-size:1.375rem}
+.range{min-height:2.75rem;height:2.75rem;margin:0}
+.range-labels{font-size:.6875rem;letter-spacing:.015em}
+.effort-label{margin:.5rem 0 .375rem;font-size:.8125rem}
+.effort{gap:.375rem}.effort button{min-height:3.25rem;padding:.375rem .125rem;font-size:.6875rem;line-height:1.2;border-radius:.75rem;color:#cfc5db}
+.effort button span{display:flex;justify-content:center;margin-bottom:.125rem}
+.effort button[aria-pressed=true]{color:#f4e8ff;border-width:2px;padding:calc(.375rem - 1px) calc(.125rem - 1px)}
+.done-button{min-height:2.75rem;margin-top:.625rem;padding:.625rem;font-size:1rem}
+.deck-footer{margin:0;min-height:2.75rem;flex-shrink:0;text-align:center;font-size:.75rem}
+.deck-footer span small{display:block;font-size:.625rem;color:var(--muted);margin-top:.125rem}
+.deck-footer button{min-height:2.75rem;min-width:2.75rem}
+main[data-page=home]{min-height:100svh;display:flex;flex-direction:column;padding:calc(1rem + env(safe-area-inset-top)) 1rem calc(.5rem + env(safe-area-inset-bottom))}
+main[data-page=home] header{margin-bottom:1.25rem}
+.home-grid{flex:1;grid-template-rows:repeat(3,minmax(7rem,1fr));gap:.75rem}
+.tile{min-height:7rem;padding:1rem;border-radius:1.25rem}.tile h2{font-size:1.375rem}
+main[data-page=home] .footer{margin-top:.75rem}
+dialog{max-height:calc(100dvh - 2rem);overflow:auto;background:#25222cf2;backdrop-filter:blur(20px)}
+dialog .text-button{min-height:2.75rem}
+#notice button{min-height:2.75rem}#notice:not(:empty){padding:.5rem 1rem}
+@media(min-height:760px){.exercise-card{padding:1.25rem}.exercise-card h2{font-size:1.625rem}.previous{padding:.625rem 0;margin:.625rem 0}.effort-label{margin-top:.875rem}.done-button{margin-top:auto}.effort{margin-bottom:.75rem}.home-grid{gap:1rem}}
+@media(prefers-reduced-motion:reduce){.exercise-card{transform:none!important}}
+@media(prefers-reduced-transparency:reduce){dialog{background:#25222c;backdrop-filter:none}dialog::backdrop{backdrop-filter:none;background:#08060bee}}
+@media(prefers-contrast:more){:root{--muted:#e1dce6;--line:#a89db3}.chip,.effort button{border-color:#b7aac2}dialog{background:#25222c;backdrop-filter:none}}
+main[data-page=day] .workout-nav .back{margin-bottom:0}.chips{min-height:1.5rem}.exercise-card h2{min-height:0}.rep-number{line-height:1.2}.previous{margin:.25rem 0;padding:.25rem 0}
+
+.done-button{margin-top:auto}.effort{margin-bottom:.625rem}
