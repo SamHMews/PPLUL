@@ -13,5 +13,17 @@
 .exercise-card.is-complete .done-button{background:#2e7951;color:#fff}
 .exercise-card.is-complete .chip{border-color:#6cab86;color:#e1f7e8}
 .exercise-card.is-complete .previous{border-color:#518567;color:#e1f7e8}
+.exercise-card.is-complete{--accent:#9ce2b7;--muted:#b5d9c3;--line:#518567;color:#effbf3}
+.exercise-card.is-complete .step{background:#2c6447;color:#d5f6e1}
+.exercise-card.is-complete .text-button,.exercise-card.is-complete .unit,.exercise-card.is-complete .weight-label,.exercise-card.is-complete .weight-value small,.exercise-card.is-complete .range-labels{color:#b5d9c3}
+.exercise-card.is-complete .field-label,.exercise-card.is-complete .effort-label,.exercise-card.is-complete .rep-number,.exercise-card.is-complete .previous strong{color:#e1f7e8}
+.exercise-card.is-complete .effort button{background:#214c36;border-color:#609775;color:#d5f6e1}
+.exercise-card.is-complete .effort button[aria-pressed=true]{background:#397651;border-color:#a3e7bb;color:#f0fff5}
+.exercise-card.is-complete .rep-rail{background:#49765b}
+.exercise-card.is-complete .rep-fill{background:#9ce2b7}
+.exercise-card.is-complete .rep-ticks i{background:#d5f6e1}
+.exercise-card.is-complete .rep-thumb::before{background:#9ce2b7;border-color:#d9f9e4}
+.exercise-card.is-complete .rep-control:focus-within{outline-color:#9ce2b7}
+.exercise-card.is-complete .done-button:active{background:#40895e;color:#f0fff5}
 @media(prefers-contrast:more){.rep-thumb::before{border-color:#fff}.rep-rail{background:#766580}}
 @media(prefers-reduced-motion:reduce){.rep-thumb{will-change:auto}}
