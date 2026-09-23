@@ -1,0 +1,23 @@
+/* All cards share a grid cell: the tallest card sets a stable deck height. */
+main[data-page=day]:has(.card-stack){padding-bottom:calc(1.75rem + env(safe-area-inset-bottom));overflow:clip}
+.workout-nav{position:relative;justify-content:center}
+.workout-nav .back{position:absolute;left:0;flex:initial}
+.card-stack{display:grid;isolation:isolate;flex:1;min-height:0;position:relative;touch-action:pinch-zoom}
+.card-stack .exercise-card{grid-area:1/1;visibility:hidden;position:relative;z-index:0;min-width:0;transform-origin:50% 80%;box-shadow:0 8px 24px #0003;touch-action:pinch-zoom;will-change:transform;justify-content:space-between;gap:clamp(.125rem,.65svh,.4rem)}
+.card-stack .exercise-card button{touch-action:pinch-zoom}
+.card-stack .is-rear{visibility:visible;z-index:1}
+.card-stack .is-under{visibility:visible;z-index:2}
+.card-stack .is-front{visibility:visible;z-index:3}
+.card-stack .done-button{margin-top:.5rem;margin-bottom:0}
+.card-stack .effort{margin-bottom:0}
+.card-stack .exercise-card h2{margin:0;font-size:1.375rem}
+.card-stack .weight-label{margin:0}
+.card-stack .previous{margin:.125rem 0;padding:.375rem 0}
+.card-stack .effort-label{margin:.125rem 0}
+.card-stack .unit{margin:0}
+.card-stack .exercise-card.is-complete button:disabled,.card-stack .exercise-card.is-complete input:disabled{opacity:.8;cursor:default;pointer-events:none}
+.card-stack .exercise-card.is-complete .done-button{opacity:1}
+.card-stack .is-complete{transition:background-color 160ms ease,border-color 160ms ease}
+@media(min-height:760px){.card-stack .exercise-card{padding:1.25rem;gap:.375rem}.card-stack .exercise-card h2{font-size:1.625rem}.card-stack .previous{padding:.625rem 0}}
+@media(prefers-reduced-motion:reduce){.card-stack .exercise-card{transform:none!important;transition:none;will-change:opacity}}
+@media(max-height:550px){.card-stack,.card-stack .exercise-card,.card-stack .exercise-card button{touch-action:pan-y pinch-zoom}}
