@@ -1,7 +1,7 @@
 // Native range semantics under a custom, touch-sized visual track.
 // Only the visual thumb springs; input and haptic feedback update immediately.
 export function attachRepSlider(input, save) {
-  const control=input.closest('.rep-control'), output=document.querySelector('#rep-value');
+  const control=input.closest('.rep-control'), output=input.closest('.exercise-card').querySelector('output');
   const min=Number(input.min), max=Number(input.max);
   let value=Number(input.value), position=(value-min)/(max-min)*100, velocity=0, frame=0;
   const render=()=>{control.style.setProperty('--rep-position',position+'%');control.style.setProperty('--rep-progress',position/100);};render();
