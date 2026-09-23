@@ -1,4 +1,4 @@
-const CACHE='training-v13';
+const CACHE='training-v14';
 const ASSETS=['./','./index.html','./style.css','./mobile.css','./gestures.js','./reps.js','./feedback.css','./stack.css','./app.js','./github-sync.js','./model.js','./storage.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 let legacyUpdateClient=null;
 self.addEventListener('install',event=>event.waitUntil((async()=>{

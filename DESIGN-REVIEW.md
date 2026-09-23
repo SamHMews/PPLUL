@@ -64,3 +64,7 @@ GitHub stores the shared snapshot at data/workouts.json on main after connection
 ## Remembered GitHub connection (Version 13)
 
 Supersedes the session-only credential policy above at the user’s request. The repository-scoped token is stored in device localStorage and automatically reused on launch. Existing session tokens migrate without re-entry. Disconnect clears both stores, leaving workouts intact. Tokens remain outside snapshots/exports/source. Opening offline and then returning online rechecks GitHub using the saved connection. Tests cover new sessions, migration and forgetting credentials.
+
+## Manual save recovery (Version 14)
+
+Save now previously called a flush that returned silently if the saved token had not reached a ready connection, including conflicts. It now waits for local saves and rechecks GitHub with the remembered token, exposing conflict choices or errors. A missing token produces a persistent status and focuses the connection field. No workouts are replaced without choosing a copy. Browser regression covers a failed initial connection followed by Save now, a divergent remote copy, and a missing token.
