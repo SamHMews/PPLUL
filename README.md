@@ -41,3 +41,9 @@ Still requires an actual iPhone 13 check: touch arbitration with the slider, loc
 
 With the local preview running and Playwright available, run `node tests/stack.browser.cjs` and `node tests/stack-edge.browser.cjs`. They use an isolated browser profile and exercise touch input, persistent card identity, return/release gestures, infinite wrapping, completion/Undo, storage failure and layout. Set `APP_URL` to test a deployment. `PLAYWRIGHT_MODULE` can point to an existing Playwright installation, and `BROWSER_CHANNEL` can select an installed browser such as `msedge`. Screenshots are saved in the ignored `test-artifacts/` folder.
 
+
+## GitHub workout storage
+
+In Backup & settings, create a fine-grained GitHub token restricted to SamHMews/PPLUL with Contents: Read and write, then enter it in the app and select Connect GitHub. Do not commit or send the token in chat. It stays in the browser session only; reconnect when that session ends. The shared public file is data/workouts.json on main, separate from the deployed gh-pages branch. GitHub commits retain prior file versions.
+
+Changes upload automatically while the app is open and connected, with Save now available. Offline work stays in IndexedDB and retries when connectivity returns. Closing the app before an upload completes leaves the change local until it reconnects. Different remote/local histories require choosing which copy to use; export a backup before replacing a copy if needed. This is whole-snapshot saving, not automatic merging of concurrent edits. The GitHub connection in Codex does not authorize the web app.
