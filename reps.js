@@ -23,6 +23,29 @@ export function attachRepSlider(input, save) {
     const next=Number(input.value);output.textContent=next;retarget();
     if(next!==value){try{navigator.vibrate?.(8);}catch{/* Optional device capability. */}value=next;save(next);}
   });
-  // Choosing the displayed initial stop is an explicit log, too.
-  input.addEventListener('pointerup',()=>save(Number(input.value)));
+  // Own the full strip's pointer gesture rather than relying on the browser's
+  // invisible native thumb geometry. Keyboard range semantics remain native.
+  let pointer=null;
+  const choose=ev=>{
+    const rail=control.querySelector('.rep-rail').getBoundingClientRect();
+    const fraction=Math.max(0,Math.min(1,(ev.clientX-rail.left)/rail.width));
+    const next=min+Math.round(fraction*(max-min));
+    if(next!==Number(input.value)){input.value=next;input.dispatchEvent(new Event('input',{bubbles:true}));}
+  };
+  input.addEventListener('pointerdown',ev=>{
+    if(input.disabled||!ev.isPrimary||ev.button!==0)return;
+    ev.preventDefault();ev.stopPropagation();pointer=ev.pointerId;
+    input.focus({preventScroll:true});input.setPointerCapture(pointer);choose(ev);
+  });
+  input.addEventListener('pointermove',ev=>{
+    if(ev.pointerId!==pointer)return;ev.preventDefault();ev.stopPropagation();choose(ev);
+  });
+  input.addEventListener('pointerup',ev=>{
+    if(ev.pointerId!==pointer)return;ev.preventDefault();ev.stopPropagation();choose(ev);
+    pointer=null;if(input.hasPointerCapture(ev.pointerId))input.releasePointerCapture(ev.pointerId);
+    save(Number(input.value));
+  });
+  input.addEventListener('pointercancel',()=>{pointer=null;});
+  input.addEventListener('lostpointercapture',()=>{pointer=null;});
+  input.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();});
 }
