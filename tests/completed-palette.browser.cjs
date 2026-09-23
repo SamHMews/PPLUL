@@ -2,6 +2,10 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');const asse
 (async()=>{const b=await chromium.launch({channel:process.env.BROWSER_CHANNEL||undefined,headless:true});try{
 const p=await b.newPage({viewport:{width:390,height:664},isMobile:true,hasTouch:true});await p.goto(process.env.APP_URL||'http://127.0.0.1:5173');await p.locator('[data-day=Push]').click();
 assert.equal(await p.locator('.is-front .unit').innerText(),'Total weight');
+for(const button of await p.locator('.is-front .step').all()){
+  const centered=await button.evaluate(e=>{const b=e.getBoundingClientRect(),s=e.querySelector('svg').getBoundingClientRect();return Math.abs(b.x+b.width/2-s.x-s.width/2)<.5&&Math.abs(b.y+b.height/2-s.y-s.height/2)<.5;});
+  assert(centered,'Weight symbol must be centered in its button');
+}
 await p.getByRole('button',{name:'Could do more',exact:true}).click();await p.getByRole('button',{name:'Done',exact:true}).click();await p.locator('.is-front.is-complete').waitFor();
 assert.equal(await p.locator('.is-front input.range').evaluate(e=>getComputedStyle(e).opacity),'0');
 assert.equal(await p.locator('.is-front .rep-thumb').evaluate(e=>getComputedStyle(e,'::before').opacity),'1');
