@@ -48,3 +48,9 @@ Weight controls use centered vector symbols with unchanged touch targets. The gr
 
 Validation: 17 model/storage tests; browser checks for centered controls and complete-card palette; a local long-lived-cache upgrade from an older app with a deliberately disabled reload handler verified new symbols, invisible native slider, preserved completion and subsequent offline reload. This validates the recovery path, not the exact cause on the user's device.
 
+
+## Day symbols and exercise overview
+
+All day, Bonus and completion symbols share a 24-unit vector grid, 16-by-16 painted path bounds, consistent stroke weight and a 32px box. The lower-left All exercises control changes to Close in the overview. Name-only mini-cards use the same dark/green surfaces as the full cards with purple/green borders. Selecting a mini-card saves the deck position and focuses that card; Close preserves the current position. Accessible names describe completion without adding visible content. Pending saves settle before opening the overview. Existing swipe physics remain unchanged; the overview switches immediately without large motion. Rem-based sizing and a short-screen spacing adjustment keep normal phone layouts within the viewport, while enlarged text can expand naturally.
+
+Validation: all five overview counts, completion colors, selection persistence after reload, matching icon bounds including completion tick, Close behavior and three phone sizes passed. Existing physical-stack and edge regressions pass for all 34 exercises, gesture interruption, completion/Undo and failed-save Retry.
