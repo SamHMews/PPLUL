@@ -1,0 +1,17 @@
+.rep-control{position:relative;min-height:2.75rem;height:2.75rem;margin:0}
+.rep-control .range{position:absolute;inset:0;opacity:0;z-index:2;height:100%;width:100%;margin:0;cursor:pointer}
+.rep-control:focus-within{outline:2px solid var(--accent);outline-offset:2px;border-radius:.75rem}
+.rep-rail{position:absolute;left:.875rem;right:.875rem;top:calc(50% - .1875rem);height:.375rem;border-radius:1rem;background:#534a5e;pointer-events:none}
+.rep-fill{position:absolute;inset:0;background:var(--accent);border-radius:inherit;transform:scaleX(var(--rep-progress,0));transform-origin:left}
+.rep-ticks{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center}
+.rep-ticks i{width:.25rem;height:.25rem;border-radius:50%;background:#e2d6ed}
+.rep-thumb{position:absolute;inset:0;transform:translateX(var(--rep-position));will-change:transform}
+.rep-thumb::before{content:'';position:absolute;width:1.75rem;height:1.75rem;border-radius:50%;left:-.875rem;top:calc(50% - .875rem);background:#d1b7e6;border:2px solid #f0e2fb;box-shadow:0 2px 5px #0005}
+.rep-stops{padding:0 .5rem;margin-bottom:.125rem;font-size:.75rem}
+.rep-stops span{min-width:.75rem;text-align:center}
+.exercise-card.is-complete{background:#183e30;border-color:#74ce9b}
+.exercise-card.is-complete .done-button{background:#2e7951;color:#fff}
+.exercise-card.is-complete .chip{border-color:#6cab86;color:#e1f7e8}
+.exercise-card.is-complete .previous{border-color:#518567;color:#e1f7e8}
+@media(prefers-contrast:more){.rep-thumb::before{border-color:#fff}.rep-rail{background:#766580}}
+@media(prefers-reduced-motion:reduce){.rep-thumb{will-change:auto}}
