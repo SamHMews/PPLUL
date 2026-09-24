@@ -85,3 +85,8 @@ The plate now has a textured face and shallow layered rim, changing three-dimens
 
 Hip Abductors are removed from fresh and existing active programmes, with saved results/drafts retained and archived weeks untouched. Legs now has four exercises. Validation: 24 model/storage tests, celebration order/3D motion/contact/reduced-motion browser checks and overview phone layouts passed. Falling and rebound frames were visually inspected.
 
+## Flat 3D landing and simultaneous Home transition (Version 17)
+
+The plate uses a textured WebGL mesh with beveled faces, a thick rim, central bore and directional lighting. Its diameter is 106% of the viewport width, centered at 69% of the width. A 900ms accelerating fall wobbles toward a flat landing, followed by a small damped rebound and rocking settle. Impact triggers the existing brief screen jolt and optional vibration. The plate stays opaque until navigation is ready; Home rendering and plate removal happen in the same microtask turn, avoiding an intermediate visible frame. The green completed card stays behind the plate throughout.
+
+Reduced motion and unavailable WebGL use a stationary plate with no shake or haptic. Interrupted rendering cleans up interaction state. Browser validation covers normal 3D, reduced motion, no-WebGL fallback, exact floor contact, completion and Undo. Frame sampling with an artificial 250ms Home persistence delay confirms the plate and completed card disappear together when Home appears.
