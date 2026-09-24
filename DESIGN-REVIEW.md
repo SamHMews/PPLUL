@@ -68,3 +68,13 @@ Supersedes the session-only credential policy above at the user’s request. The
 ## Manual save recovery (Version 14)
 
 Save now previously called a flush that returned silently if the saved token had not reached a ready connection, including conflicts. It now waits for local saves and rechecks GitHub with the remembered token, exposing conflict choices or errors. A missing token produces a persistent status and focuses the connection field. No workouts are replaced without choosing a copy. Browser regression covers a failed initial connection followed by Save now, a divergent remote copy, and a missing token.
+
+## Upper Day and final-exercise plate impact (Version 15)
+
+Upper now has fixed Wide-Grip Machine Row (2 x 5–7) and Smith Machine Shoulder Press (2 x 4–6). New exercise IDs prevent old equipment results being mistaken for new machine results. Replaced active logs/drafts are retained as historical records under their original names; archived weeks are unchanged. Migration is idempotent.
+
+Only a successful Done that changes remaining from one to zero starts the sequence, regardless of card order. The green card remains visible for 220ms, then a photoreal cast-iron plate falls with quadratic acceleration for 620ms. At viewport-floor contact a 40ms vibration is requested where available, with a brief damped vertical UI jolt and a tiny rebound. After 440ms of rebound/settle/fade, navigation returns Home with a green tile. Total duration is approximately 1.3 seconds. Reopening an already completed day, Undo and intermediate completions do not celebrate. Reduced motion uses a stationary plate fade without falling, shaking or haptics. Backgrounding ends and cleans up the sequence.
+
+The referenced JPEG was not present in the supplied attachments, synced project or repository. The transparent plate asset was generated from the written cast-iron material description. No manufacturer match is claimed. The image and animation module are included in the offline cache.
+
+Validation: model/storage tests and replacement-history regression pass. Browser tests verify last-remaining completion out of numerical order, floor-aligned haptic timing, automatic green Home tile, no replay, Undo and reduced motion. All 34 cards continue to fit three phone viewports, and existing interrupted-gesture/save-retry regressions pass.
