@@ -44,3 +44,5 @@ main[data-page=day]:has(.card-stack){padding-bottom:calc(.5rem + env(safe-area-i
 @media(min-height:760px){.card-stack .exercise-card{padding:1.25rem;gap:.375rem}.card-stack .exercise-card h2{font-size:1.625rem}.card-stack .previous{padding:.625rem 0}}
 @media(prefers-reduced-motion:reduce){.card-stack .exercise-card{transform:none!important;transition:none;will-change:opacity}}
 @media(max-height:550px){.card-stack,.card-stack .exercise-card,.card-stack .exercise-card button{touch-action:pan-y pinch-zoom}}
+.plate-celebration{position:fixed;left:0;width:100%;height:100dvh;overflow:hidden;pointer-events:none;z-index:30}
+.celebration-plate{position:absolute;left:50%;top:0;width:50vw;max-width:320px;height:auto;aspect-ratio:1;object-fit:contain;transform:translate3d(-50%,-110vh,0);will-change:transform,opacity}
