@@ -9,7 +9,7 @@ test('programme migration removes Hip Thrusts on both days, preserving archives 
  const archived=structuredClone(old.active);archived.id='old-week';old.archives.push(archived);
  const before=JSON.stringify(old.archives), next=migrateState(old);
  assert.equal(JSON.stringify(next.archives),before);
- assert.deepEqual(['Legs','Lower'].map(d=>next.active.days[d].entries.length),[5,6]);
+ assert.deepEqual(['Legs','Lower'].map(d=>next.active.days[d].entries.length),[4,6]);
  assert.equal(next.seed.filter(e=>e.source==='programme_migration').length,2);
  assert(!Object.keys(next.settings).some(k=>k.endsWith(':hip-thrust')));
  assert.deepEqual(migrateState(next),next);

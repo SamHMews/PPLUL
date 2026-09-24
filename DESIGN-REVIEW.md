@@ -78,3 +78,10 @@ Only a successful Done that changes remaining from one to zero starts the sequen
 The referenced JPEG was not present in the supplied attachments, synced project or repository. The transparent plate asset was generated from the written cast-iron material description. No manufacturer match is claimed. The image and animation module are included in the offline cache.
 
 Validation: model/storage tests and replacement-history regression pass. Browser tests verify last-remaining completion out of numerical order, floor-aligned haptic timing, automatic green Home tile, no replay, Undo and reduced motion. All 34 cards continue to fit three phone viewports, and existing interrupted-gesture/save-retry regressions pass.
+
+## Slower tilted plate and Hip Abductors removal (Version 16)
+
+The plate now has a textured face and shallow layered rim, changing three-dimensional tilt during a 1.45-second accelerating fall. First floor contact triggers the UI jolt/haptic; a visible 28px rebound, smaller recoil and damped rocking settle the plate toward a flatter angle before Home. Total sequence is approximately 2.6 seconds. Circular projected edge and rim thickness determine floor contact. Reduced motion retains a stationary fade.
+
+Hip Abductors are removed from fresh and existing active programmes, with saved results/drafts retained and archived weeks untouched. Legs now has four exercises. Validation: 24 model/storage tests, celebration order/3D motion/contact/reduced-motion browser checks and overview phone layouts passed. Falling and rebound frames were visually inspected.
+
