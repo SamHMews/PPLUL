@@ -46,3 +46,5 @@ main[data-page=day]:has(.card-stack){padding-bottom:calc(.5rem + env(safe-area-i
 @media(max-height:550px){.card-stack,.card-stack .exercise-card,.card-stack .exercise-card button{touch-action:pan-y pinch-zoom}}
 .plate-celebration{position:fixed;left:0;width:100%;height:100dvh;overflow:hidden;pointer-events:none;z-index:30}
 .celebration-plate{position:absolute;left:50%;top:0;width:50vw;max-width:320px;height:auto;aspect-ratio:1;object-fit:contain;transform:translate3d(-50%,-110vh,0);will-change:transform,opacity}
+.celebration-plate{height:auto;aspect-ratio:1;transform-style:preserve-3d}
+.plate-face{position:absolute;inset:0;width:100%;height:100%;backface-visibility:visible}
