@@ -40,5 +40,5 @@ async function drawPlate(app,layer,canvas,gl,w,h,signal){
  const projected=positions.filter((_,i)=>i%3===0).map(p=>rotation.transformPoint({x:p[0],y:p[1],z:p[2]}));y=Math.max(...projected.map(q=>(h/2-desiredBottom)*(6-q.z)*2/(f*h)-q.y));const bottom=Math.max(...projected.map(q=>h/2-(q.y+y)*f/(6-q.z)*h/2));
  const model=new DOMMatrix().translate(x,y,0).multiply(rotation);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniformMatrix4fv(modelLoc,false,model.toFloat32Array());gl.uniform1f(opacityLoc,1);gl.drawArrays(gl.TRIANGLES,0,data.length/9);
  if(firstImpact){layer.dataset.impact='true';layer.dataset.contact=String(bottom);try{navigator.vibrate?.(40);}catch{}}
- if(impact!==null)app.style.transform='translateY('+(s<400?11*Math.exp(-s/95)*Math.cos(s/30):0)+'px)';return s>=560;},signal);
+ if(impact!==null)app.style.transform='translateY('+(s<520?20*Math.exp(-s/140)*Math.cos(s/28):0)+'px)';return s>=1560;},signal);
 }
