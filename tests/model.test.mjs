@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DAYS,initialState,remaining,currentEntry,navigate,completeEntry,archiveWeek,previousResult,validateState,toCSV} from '../dist/model.js';
-test('routine counts and removed exercises match handover',()=>{const s=initialState();assert.deepEqual(DAYS.map(d=>s.active.days[d].entries.length),[8,8,5,7,6]);assert(!JSON.stringify(s.active).includes('Wrist Curls'));});
+test('routine counts and removed exercises match handover',()=>{const s=initialState();assert.deepEqual(DAYS.map(d=>s.active.days[d].entries.length),[8,8,4,7,6]);assert(!JSON.stringify(s.active).includes('Wrist Curls'));});
 test('swiping wraps, preserves drafts and does not change remaining',()=>{const s=initialState(),day=s.active.days.Push;day.entries[0].weight=80;navigate(day,-1);assert.equal(currentEntry(day).id,'pushdown');navigate(day,1);assert.equal(currentEntry(day).weight,80);assert.equal(remaining(day).length,8);});
 test('Done keeps the same card, preserves optional null logs and remains browsable',()=>{
  const s=initialState(),day=s.active.days.Push;completeEntry(day,'bench');assert.equal(currentEntry(day).id,'bench');assert.equal(currentEntry(day).completed,true);
