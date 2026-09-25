@@ -47,7 +47,7 @@ export function attachStack(stack,currentId,onNavigate) {
     }frame=requestAnimationFrame(tick);
   }
   listen('pointerdown',ev=>{
-    if(pending||cards.length<2||!ev.isPrimary||ev.button!==0||ev.target.closest('input,select,textarea'))return;
+    if(pending||cards.length<2||!ev.isPrimary||ev.button!==0||ev.target.closest('input,select,textarea,.spotify-next'))return;
     cancelAnimationFrame(frame);flight=0;suppress=false;width=stack.clientWidth;
     drag={id:ev.pointerId,startX:ev.clientX,startY:ev.clientY,offset:x,axis:null,samples:[{x:ev.clientX,t:ev.timeStamp}]};
   });

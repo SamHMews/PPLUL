@@ -93,3 +93,10 @@ Reduced motion and unavailable WebGL use a stationary plate with no shake or hap
 ## Longer landing hold and stronger impact (Version 18)
 
 Keep the settled plate and green card visible for one additional second before the simultaneous Home transition. Increase the vertical impact from 11px to 20px with a slightly longer damped shake, ending within 520ms. The falling speed and reduced-motion fallback remain unchanged. Browser checks verify the longer post-impact hold and simultaneous transition.
+## Spotify next-track control (Version 21)
+
+Each full exercise card has a 44px next-track control beside the title. It uses the card accent, including green on completed cards, and remains enabled when workout inputs are locked. It does not start a swipe. Settings provide Connect, Reconnect and Disconnect Spotify; an unconnected card button offers the same connection flow.
+
+Spotify OAuth uses S256 PKCE with a random, ten-minute state/verifier transaction and the exact registered HTTPS return URL. Only playback-control permission is requested. Access and refresh tokens are retained in a separate device localStorage record, never in workout state, GitHub snapshots or exports. Expiry and one 401 retry trigger refresh. Disconnect clears local authorization. The public client ID is intentionally included; no client secret is used. Network requests time out, concurrent skips are suppressed, rate limits back off, and ambiguous playback failures are not retried. A missing player prompts the user to start Spotify. OAuth query parameters are removed on return and the document suppresses referrers.
+
+Validation uses mocked Spotify responses for the full PKCE flow, invalid state rejection, refresh across reloads, next-track calls, completed-card controls, authentication/no-player/rate-limit/offline errors, disconnect, and three phone layouts. Real-account sign-in and playback still require the user's first connection on their phone.

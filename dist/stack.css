@@ -48,3 +48,5 @@ main[data-page=day]:has(.card-stack){padding-bottom:calc(.5rem + env(safe-area-i
 .celebration-plate{position:absolute;left:50%;top:0;width:50vw;max-width:320px;height:auto;aspect-ratio:1;object-fit:contain;transform:translate3d(-50%,-110vh,0);will-change:transform,opacity}
 .celebration-plate{height:auto;aspect-ratio:1;transform-style:preserve-3d}
 .plate-face{position:absolute;inset:0;width:100%;height:100%;backface-visibility:visible}
+
+.card-heading{display:flex;align-items:flex-start;gap:.5rem;min-height:44px}.card-heading h2{flex:1;min-width:0}.spotify-next{flex:0 0 44px;width:44px;height:44px;min-height:44px;display:grid;place-items:center;padding:0;border:1px solid var(--line);border-radius:50%;background:transparent;color:var(--accent)}.spotify-next svg{width:22px;height:22px}.spotify-next:disabled{opacity:.5}.spotify-next:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.exercise-card.is-complete .spotify-next{color:#9ce2b7;border-color:#518567}.exercise-card.is-complete .spotify-next:active{background:#397651}
