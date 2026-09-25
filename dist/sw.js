@@ -1,5 +1,5 @@
-const CACHE='training-v20';
-const ASSETS=['./','./index.html','./style.css','./mobile.css','./gestures.js','./reps.js','./feedback.css','./stack.css','./app.js','./celebration.js','./weight-plate.png','./github-sync.js','./model.js','./storage.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const CACHE='training-v21';
+const ASSETS=['./','./index.html','./style.css','./mobile.css','./gestures.js','./reps.js','./feedback.css','./stack.css','./app.js','./spotify.js','./celebration.js','./weight-plate.png','./github-sync.js','./model.js','./storage.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 let legacyUpdateClient=null;
 self.addEventListener('install',event=>event.waitUntil((async()=>{
   const cache=await caches.open(CACHE);
