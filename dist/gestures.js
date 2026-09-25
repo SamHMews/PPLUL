@@ -78,5 +78,13 @@ export function attachStack(stack,currentId,onNavigate) {
   });
   layers();paint();
   motion.addEventListener('change',paint,{signal:events.signal});
-  return ()=>{disposed=true;cancelAnimationFrame(frame);events.abort();};
+  const dispose=()=>{disposed=true;cancelAnimationFrame(frame);events.abort();};
+  dispose.advanceTo=id=>{
+    if(disposed||pending)return;
+    const target=cards.findIndex(c=>c.dataset.entry===id);
+    if(target<0||target===index)return;
+    cancelAnimationFrame(frame);drag=null;x=velocity=0;width=stack.clientWidth;
+    flight=(target-index+cards.length)%cards.length;layers(flight);spring(-(width+80));
+  };
+  return dispose;
 }
