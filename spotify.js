@@ -28,7 +28,7 @@ export function createSpotify({notify=()=>{}}={}){
   if(epoch!==generation)throw new Error('Spotify connection changed. Please try again.');
   if(!data.access_token||!(data.refresh_token||previous?.refresh_token))throw new Error('Spotify did not finish connecting. Please reconnect.');
   if(data.scope&&!(params.grant_type==='authorization_code'?SCOPE.split(' '):['user-modify-playback-state']).every(scope=>data.scope.split(' ').includes(scope)))throw new Error('Please reconnect Spotify and allow playback control.');
-  const auth={scope:data.scope||previous?.scope||SCOPE,access_token:data.access_token,refresh_token:data.refresh_token||previous.refresh_token,expires_at:Date.now()+(Number(data.expires_in)||3600)*1000};
+  const auth={last_device_id:previous?.last_device_id||null,scope:data.scope||previous?.scope||SCOPE,access_token:data.access_token,refresh_token:data.refresh_token||previous.refresh_token,expires_at:Date.now()+(Number(data.expires_in)||3600)*1000};
   localStorage.setItem(AUTH_KEY,JSON.stringify(auth));return auth.access_token;
  }
  async function accessToken(force=false){
@@ -53,7 +53,7 @@ export function createSpotify({notify=()=>{}}={}){
   if(!flow||!state||state!==flow.state||Date.now()-flow.created>600000)throw new Error('Spotify sign-in expired or opened in a different browser. Connect again from this app.');
   if(error)throw new Error('Spotify connection cancelled. You can connect again in Backup & settings.');
   await tokenRequest({grant_type:'authorization_code',code,redirect_uri:REDIRECT,code_verifier:flow.verifier},null,generation);
-  notify('Spotify connected. Start music in Spotify, then drag up to pause or play, or down for the next song.');return true;
+  notify('Spotify connected. Drag up to pause or play, or down for the next song.');return true;
  }
  async function playback(action){
   if(busy)return false;
@@ -66,23 +66,37 @@ export function createSpotify({notify=()=>{}}={}){
     check();const send=()=>request('https://api.spotify.com/v1/me/player'+path,{method,headers:{Authorization:'Bearer '+token}});
     let r=await send();check();if(r.status===401){token=await accessToken(true);check();r=await send();check();}
     if(r.ok)return r;
-    if(r.status===404)throw new Error('Start music in Spotify on your phone, then try again.');
+    if(r.status===404){const error=new Error('Spotify is not available to remote controls. Open Spotify once on your phone, then try again.');error.status=404;throw error;}
     if(r.status===403&&method==='GET'){const e=new Error('Reconnect Spotify once to enable pause and play.');e.reconnect=true;throw e;}
     if(r.status===403)throw new Error('Spotify cannot control this playback. Check Premium and your active device.');
     if(r.status===401){localStorage.removeItem(AUTH_KEY);throw new Error('Please reconnect Spotify in Backup & settings.');}
     if(r.status===429){const seconds=Math.max(1,Number(r.headers.get('Retry-After'))||30);blockedUntil=Date.now()+seconds*1000;throw new Error('Spotify is busy. Try again in '+seconds+' seconds.');}
     throw new Error('Spotify could not confirm the command. Check your music before trying again.');
    }
-   let device='';
+   let deviceId=null;
    if(action==='toggle'){
     const r=await api('','GET');
-    if(r.status===204)throw new Error('Open Spotify and start music on your phone first.');
-    const state=await r.json();check();
-    if(!state.device||state.device.is_restricted)throw new Error('Spotify cannot control this device. Start music on your phone first.');
-    action=state.is_playing?'pause':'play';
-    if(state.device.id)device='?device_id='+encodeURIComponent(state.device.id);
+    const state=r.status===204?null:await r.json();check();
+    if(state?.device?.is_restricted)throw new Error('Spotify does not allow remote control of this device.');
+    if(state?.device?.id){
+     deviceId=state.device.id;action=state.is_playing?'pause':'play';
+    }else{
+     // No current playback does not mean there is no reachable player.
+     const devicesResponse=await api('/devices','GET');
+     const devicesData=await devicesResponse.json();check();
+     const devices=(devicesData.devices||[]).filter(d=>d.id&&!d.is_restricted);
+     const remembered=read(AUTH_KEY)?.last_device_id;
+     const phones=devices.filter(d=>d.type?.toLowerCase()==='smartphone');
+     const target=devices.find(d=>d.is_active)||devices.find(d=>d.id===remembered)||(phones.length===1?phones[0]:devices.length===1?devices[0]:null);
+     if(devices.length&&!target)throw new Error('Several Spotify devices are available. Choose your phone in Spotify once.');
+     deviceId=target?.id||null;action='play';
+    }
    }
-   await api('/'+action+device,action==='next'?'POST':'PUT');return action;
+   // With no listed device, still let Spotify try its default active player once.
+   // Never retry ambiguous command failures or replay a skip automatically.
+   await api('/'+action+(deviceId?'?device_id='+encodeURIComponent(deviceId):''),action==='next'?'POST':'PUT');
+   if(deviceId){const auth=read(AUTH_KEY);if(auth){auth.last_device_id=deviceId;localStorage.setItem(AUTH_KEY,JSON.stringify(auth));}}
+   return action;
   }finally{if(epoch===generation)busy=false;}
  }
  return {connected,connect,disconnect,finishLogin,cancelPending,next:()=>playback('next'),toggle:()=>playback('toggle')};
