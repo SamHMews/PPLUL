@@ -117,3 +117,6 @@ Targeted browser regression covers command timing before/after release, no-op ge
 Replace the music switch with the approved purple analog cap and fixed central base, with no visible direction symbols or frame. The cap travels up to 40px horizontally, revealing the stem and base, then springs back. Vertical pointer motion never moves the cap; vertical releases do not trigger playback. A deliberate 28px horizontal release pauses left or skips right. Completed cards use the same material shading in green. Reduced motion disables the spring animation.
 
 Gesture browser checks pass, including fixed-base position, horizontal travel limit, vertical no-op, release-only timing, cancelled/recentred drags, keyboard release, deck isolation, Cardio and 375px layout. Version 24 was a local design iteration and was not published.
+## Compact borderless lever (Version 26)
+
+Reduce the music control to a slim 8x23px purple lever on an 18px circular mounting base, matching the physical toggle reference. The 48px touch target is invisible: no frame, border, symbols or pill track. Keyboard focus lights the lever itself. Existing horizontal release-only actions remain unchanged; green cards retain a green finish. Gesture regression and small-screen visual inspection pass.
