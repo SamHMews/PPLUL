@@ -29,7 +29,8 @@ export function attachRepSlider(input, save) {
   const choose=ev=>{
     const rail=control.querySelector('.rep-rail').getBoundingClientRect();
     const fraction=Math.max(0,Math.min(1,(ev.clientX-rail.left)/rail.width));
-    const next=min+Math.round(fraction*(max-min));
+    const step=Number(input.step)||1;
+    const next=Math.min(max,min+Math.round(fraction*(max-min)/step)*step);
     if(next!==Number(input.value)){input.value=next;input.dispatchEvent(new Event('input',{bubbles:true}));}
   };
   input.addEventListener('pointerdown',ev=>{
