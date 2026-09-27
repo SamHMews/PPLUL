@@ -32,7 +32,7 @@ const BASE=process.env.APP_URL||'http://127.0.0.1:5173/';
   await page.reload();await skip();await page.waitForFunction(()=>!document.querySelector('.is-front .music-switch').disabled);assert.equal(refreshes,1);assert.equal(skips,2);
   await page.getByRole('button',{name:'Done',exact:true}).click();await page.locator('.is-front[data-entry=bulgarian]').waitFor();
   await page.locator('[data-progress=deadlift]').click();await page.locator('.is-front[data-entry=deadlift]').waitFor();assert.equal(await next().isEnabled(),true);await skip();await page.waitForFunction(()=>!document.querySelector('.is-front .music-switch').disabled);assert.equal(skips,3);
-  status=404;await skip();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('Start music'));assert.equal(skips,4);
+  status=404;await skip();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('not available to remote controls'));assert.equal(skips,4);
   status=401;await skip();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('reconnect'));assert.equal(skips,6);assert.equal(refreshes,2);
   await page.evaluate(()=>localStorage.setItem('pplul-spotify-auth',JSON.stringify({access_token:'fake-access',refresh_token:'fake-refresh',expires_at:Date.now()+3600000})));
   status=429;await skip();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('Spotify is busy'));const count=skips;await skip();assert.equal(skips,count);
