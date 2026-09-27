@@ -60,4 +60,4 @@ main[data-page=day]:has(.card-stack){padding-bottom:calc(.5rem + env(safe-area-i
 .music-switch.dragging .music-track{background:#8963a5}.music-switch:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.music-switch:disabled{opacity:.6}
 .exercise-card.is-complete .music-track{background:#397651}.exercise-card.is-complete .music-thumb{background:#e1f7e8}.exercise-card.is-complete .music-switch.dragging .music-track{background:#4b9468}
 
-.music-icon{position:absolute;left:7px;width:14px;height:14px;color:#eee3f5;opacity:.32}.music-icon-up{top:5px}.music-icon-down{bottom:5px}.exercise-card.is-complete .music-icon{color:#e1f7e8}
+.music-icon{position:absolute;left:7px;width:14px;height:14px;color:var(--accent);opacity:1}.music-icon-up{top:5px}.music-icon-down{bottom:5px}.exercise-card.is-complete .music-icon{color:#e1f7e8}
