@@ -50,22 +50,22 @@ export function createSpotify({notify=()=>{}}={}){
   await tokenRequest({grant_type:'authorization_code',code,redirect_uri:REDIRECT,code_verifier:flow.verifier},null,generation);
   notify('Spotify connected. Start music in Spotify, then use the next-track button.');return true;
  }
- async function next(){
+ async function playback(action){
   if(busy)return false;
   if(Date.now()<blockedUntil)throw new Error('Spotify needs a moment. Try again in '+Math.ceil((blockedUntil-Date.now())/1000)+' seconds.');
   busy=true;
   try{
    let token=await accessToken();
-   const send=()=>request('https://api.spotify.com/v1/me/player/next',{method:'POST',headers:{Authorization:'Bearer '+token}});
+   const send=()=>request('https://api.spotify.com/v1/me/player/'+action,{method:action==='pause'?'PUT':'POST',headers:{Authorization:'Bearer '+token}});
    let r=await send();if(r.status===401){token=await accessToken(true);r=await send();}
    if(r.ok)return true;
    if(r.status===404)throw new Error('Start music in Spotify on your phone, then try again.');
-   if(r.status===403)throw new Error('Spotify cannot skip here. Check Premium, your app’s allowed users, and whether this playback allows skipping.');
+   if(r.status===403)throw new Error('Spotify cannot control playback here. Check Premium, your app’s allowed users, and whether playback controls are available.');
    if(r.status===401){localStorage.removeItem(AUTH_KEY);throw new Error('Please reconnect Spotify in Backup & settings.');}
    if(r.status===429){const seconds=Math.max(1,Number(r.headers.get('Retry-After'))||30);blockedUntil=Date.now()+seconds*1000;throw new Error('Spotify is busy. Try again in '+seconds+' seconds.');}
    // Never retry an ambiguous playback failure: it could skip two songs.
-   throw new Error('Spotify could not confirm the skip. Check your music before trying again.');
+   throw new Error('Spotify could not confirm the command. Check your music before trying again.');
   }finally{busy=false;}
  }
- return {connected,connect,disconnect,finishLogin,next};
+ return {connected,connect,disconnect,finishLogin,next:()=>playback('next'),pause:()=>playback('pause')};
 }

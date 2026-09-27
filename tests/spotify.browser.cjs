@@ -26,7 +26,7 @@ const BASE=process.env.APP_URL||'http://127.0.0.1:5173/';
   await page.goto(BASE+'?code=fake-code&state='+authorization.searchParams.get('state'));
   await page.waitForFunction(()=>!!JSON.parse(localStorage.getItem('pplul-spotify-auth'))?.refresh_token);
   assert(!page.url().includes('code='));assert.equal(tokenCalls,1);
-  const next=()=>page.locator('.is-front .spotify-next');
+  const next=()=>page.locator('.is-front [data-action=spotify-next]');
   await next().click();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('Skipped'));assert.equal(skips,1);
   await page.evaluate(()=>{const a=JSON.parse(localStorage.getItem('pplul-spotify-auth'));a.expires_at=0;localStorage.setItem('pplul-spotify-auth',JSON.stringify(a));});
   await page.reload();await next().click();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('Skipped'));assert.equal(refreshes,1);assert.equal(skips,2);
