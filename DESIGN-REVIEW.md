@@ -112,3 +112,8 @@ Validation: 24 existing unit tests and 3 cardio migration/archive/backup tests p
 Replace the vertical music buttons with one recessed, spring-return control. Drag at least 23px left and release to pause, or right to skip. Taps, centre releases, cancellations and lost pointer capture never send commands. The thumb moves with the pointer and returns to centre; reduced motion removes the return animation. Keyboard Left/Right also commit only on key release, with Escape/blur cancelling. Green cards retain the matching green switch. The control stays isolated from deck swipes and remains usable on completed and Cardio cards.
 
 Targeted browser regression covers command timing before/after release, no-op gestures, cancellation, keyboard release, deck isolation, Cardio and the longest title at 375x667. Spotify calls are mocked.
+## Approved top-view analog stick (Version 25)
+
+Replace the music switch with the approved purple analog cap and fixed central base, with no visible direction symbols or frame. The cap travels up to 40px horizontally, revealing the stem and base, then springs back. Vertical pointer motion never moves the cap; vertical releases do not trigger playback. A deliberate 28px horizontal release pauses left or skips right. Completed cards use the same material shading in green. Reduced motion disables the spring animation.
+
+Gesture browser checks pass, including fixed-base position, horizontal travel limit, vertical no-op, release-only timing, cancelled/recentred drags, keyboard release, deck isolation, Cardio and 375px layout. Version 24 was a local design iteration and was not published.
