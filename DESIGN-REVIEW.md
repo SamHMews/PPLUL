@@ -107,3 +107,8 @@ Cardio replaces the home Bonus tile with an optional session: Boxing, Indoor Run
 Cardio is validated in restored snapshots, retained in archived weeks and JSON backups, and included in CSV with named duration and heart-rate columns. Spotify Next and Pause share a vertical pair of 44px controls on all cards, keeping the completed green palette. Pause uses PUT /me/player/pause with existing playback permission and token refresh/error handling. The duration slider reuses the physical thumb and now respects its step when dragged.
 
 Validation: 24 existing unit tests and 3 cardio migration/archive/backup tests passed. Browser checks cover draft/complete/reload/Undo/history, proceeding to a new week with incomplete cardio, and mocked Spotify Pause from both card types. Three phone viewports passed; Cardio and the longest strength title were visually inspected at 375x667.
+## Momentary Spotify switch (Version 23)
+
+Replace the vertical music buttons with one recessed, spring-return control. Drag at least 23px left and release to pause, or right to skip. Taps, centre releases, cancellations and lost pointer capture never send commands. The thumb moves with the pointer and returns to centre; reduced motion removes the return animation. Keyboard Left/Right also commit only on key release, with Escape/blur cancelling. Green cards retain the matching green switch. The control stays isolated from deck swipes and remains usable on completed and Cardio cards.
+
+Targeted browser regression covers command timing before/after release, no-op gestures, cancellation, keyboard release, deck isolation, Cardio and the longest title at 375x667. Spotify calls are mocked.
