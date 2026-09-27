@@ -19,6 +19,7 @@ const BASE=process.env.APP_URL||'http://127.0.0.1:5173/';
    }else {refreshes++;assert.equal(body.get('refresh_token'),'fake-refresh');}
    await route.fulfill({json:{access_token:'fake-access',refresh_token:'fake-refresh',expires_in:3600,scope:'user-modify-playback-state user-read-playback-state'}});
   });
+  await page.route('https://api.spotify.com/v1/me/player/devices',route=>route.fulfill({json:{devices:[]}}));
   await page.route('https://api.spotify.com/v1/me/player/next',async route=>{skips++;assert.equal(route.request().method(),'POST');assert.equal(route.request().headers().authorization,'Bearer fake-access');await route.fulfill({status,headers:status===429?{'Retry-After':'2','Access-Control-Expose-Headers':'Retry-After'}:{},body:''});});
   await page.goto(BASE);await page.locator('[data-day=Lower]').click();await page.locator('.is-front .music-switch').focus();await page.keyboard.press('ArrowDown');
   await page.locator('#connect-spotify').click();await page.waitForURL('https://accounts.spotify.com/authorize?*');

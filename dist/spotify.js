@@ -56,7 +56,7 @@ export function createSpotify({notify=()=>{}}={}){
   notify('Spotify connected. Drag up to pause or play, or down for the next song.');return true;
  }
  async function playback(action){
-  if(busy)return false;
+  if(busy)throw new Error('Spotify is still handling the previous command. Try again in a moment.');
   if(Date.now()<blockedUntil)throw new Error('Spotify needs a moment. Try again in '+Math.ceil((blockedUntil-Date.now())/1000)+' seconds.');
   busy=true;const epoch=generation;
   const check=()=>{if(epoch!==generation){const e=new Error('Spotify control interrupted. Try again.');e.name='AbortError';throw e;}};
@@ -64,7 +64,11 @@ export function createSpotify({notify=()=>{}}={}){
    let token=await accessToken();check();
    async function api(path,method){
     check();const send=()=>request('https://api.spotify.com/v1/me/player'+path,{method,headers:{Authorization:'Bearer '+token}});
-    let r=await send();check();if(r.status===401){token=await accessToken(true);check();r=await send();check();}
+    let r,retried=false;
+    // Reads are safe to retry once. A playback command might already have run.
+    try{r=await send();}catch(error){check();if(method!=='GET'||error.name==='AbortError'||navigator.onLine===false)throw error;retried=true;r=await send();}
+    check();if(method==='GET'&&!retried&&r.status>=500){r=await send();check();}
+    if(r.status===401){token=await accessToken(true);check();r=await send();check();}
     if(r.ok)return r;
     if(r.status===404){const error=new Error('Spotify is not available to remote controls. Open Spotify once on your phone, then try again.');error.status=404;throw error;}
     if(r.status===403&&method==='GET'){const e=new Error('Reconnect Spotify once to enable pause and play.');e.reconnect=true;throw e;}
@@ -73,28 +77,33 @@ export function createSpotify({notify=()=>{}}={}){
     if(r.status===429){const seconds=Math.max(1,Number(r.headers.get('Retry-After'))||30);blockedUntil=Date.now()+seconds*1000;throw new Error('Spotify is busy. Try again in '+seconds+' seconds.');}
     throw new Error('Spotify could not confirm the command. Check your music before trying again.');
    }
+   async function discoverDevice(){
+    const response=await api('/devices','GET');const data=await response.json();check();
+    const devices=(data.devices||[]).filter(d=>d.id&&!d.is_restricted),remembered=read(AUTH_KEY)?.last_device_id;
+    const phones=devices.filter(d=>d.type?.toLowerCase()==='smartphone');
+    const target=devices.find(d=>d.is_active)||devices.find(d=>d.id===remembered)||(phones.length===1?phones[0]:devices.length===1?devices[0]:null);
+    if(devices.length&&!target)throw new Error('Several Spotify devices are available. Choose your phone in Spotify once.');
+    return target?.id||null;
+   }
    let deviceId=null;
    if(action==='toggle'){
-    const r=await api('','GET');
-    const state=r.status===204?null:await r.json();check();
+    let r;try{r=await api('','GET');}catch(error){if(error.status!==404)throw error;}
+    const state=!r||r.status===204?null:await r.json();check();
     if(state?.device?.is_restricted)throw new Error('Spotify does not allow remote control of this device.');
-    if(state?.device?.id){
-     deviceId=state.device.id;action=state.is_playing?'pause':'play';
-    }else{
-     // No current playback does not mean there is no reachable player.
-     const devicesResponse=await api('/devices','GET');
-     const devicesData=await devicesResponse.json();check();
-     const devices=(devicesData.devices||[]).filter(d=>d.id&&!d.is_restricted);
-     const remembered=read(AUTH_KEY)?.last_device_id;
-     const phones=devices.filter(d=>d.type?.toLowerCase()==='smartphone');
-     const target=devices.find(d=>d.is_active)||devices.find(d=>d.id===remembered)||(phones.length===1?phones[0]:devices.length===1?devices[0]:null);
-     if(devices.length&&!target)throw new Error('Several Spotify devices are available. Choose your phone in Spotify once.');
-     deviceId=target?.id||null;action='play';
-    }
+    if(state?.device?.id){deviceId=state.device.id;action=state.is_playing?'pause':'play';}
+    else{deviceId=await discoverDevice();action='play';}
    }
    // With no listed device, still let Spotify try its default active player once.
    // Never retry ambiguous command failures or replay a skip automatically.
-   await api('/'+action+(deviceId?'?device_id='+encodeURIComponent(deviceId):''),action==='next'?'POST':'PUT');
+   const sendCommand=()=>api('/'+action+(deviceId?'?device_id='+encodeURIComponent(deviceId):''),action==='next'?'POST':'PUT');
+   try{await sendCommand();}catch(error){
+    // A definite 404 means Spotify rejected the command. Refresh a stale target
+    // once, preserving the original action rather than toggling it again.
+    if(error.status!==404)throw error;
+    const refreshed=await discoverDevice();
+    if(!refreshed||refreshed===deviceId)throw error;
+    deviceId=refreshed;await sendCommand();
+   }
    if(deviceId){const auth=read(AUTH_KEY);if(auth){auth.last_device_id=deviceId;localStorage.setItem(AUTH_KEY,JSON.stringify(auth));}}
    return action;
   }finally{if(epoch===generation)busy=false;}

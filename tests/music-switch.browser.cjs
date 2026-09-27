@@ -20,6 +20,9 @@ hang=true;await drag(20);await p.waitForFunction(()=>document.querySelector('.is
 deny=true;await drag(-20);await notice('Reconnect Spotify once');assert.equal(await p.locator('#notice button').textContent(),'Reconnect Spotify');deny=false;
 await control.focus();await p.keyboard.down('ArrowUp');const before=calls.length;await p.keyboard.up('ArrowUp');await notice('Music paused');assert.equal(calls.length,before+1);
 assert.equal(await p.locator('.is-front').getAttribute('data-entry'),'wide-db-row');assert(await p.locator('.is-front').evaluate(e=>e.getBoundingClientRect().bottom<=innerHeight+1));
+// A vertical start remains intentional when the thumb arcs sideways at release.
+const curved=await control.boundingBox(),cx=curved.x+curved.width/2,cy=curved.y+curved.height/2;
+await p.mouse.move(cx,cy);await p.mouse.down();await p.mouse.move(cx,cy+12);await p.mouse.move(cx+28,cy+22);const curvedBefore=calls.length;await p.mouse.up();await notice('Skipped');assert.equal(calls.length,curvedBefore+1);assert.equal(calls.at(-1),'next');
 require('fs').mkdirSync('test-artifacts',{recursive:true});await p.screenshot({path:'test-artifacts/music-switch.png'});
 await p.locator('[data-action=home]').click();await p.locator('[data-action=cardio]').click();control=p.locator('.music-switch');await drag(20);await notice('Skipped');
 console.log('PASS: pause/resume, external playback changes, background interruption recovery, reconnect, release-only/cancel/recenter/horizontal safety, keyboard, Cardio, 375px layout');
