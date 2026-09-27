@@ -1,4 +1,7 @@
 export const DAYS=['Push','Pull','Legs','Upper','Lower'];
+export const CARDIO_TYPES=['Boxing','Indoor Run','Outdoor Run','Outdoor Walk','Cycling'];
+export const newCardio=()=>({type:null,minutes:20,heartRate:null,completed:false,completedAt:null});
+export const weekComplete=w=>DAYS.every(d=>w.days[d].entries.every(e=>e.completed));
 const ex=(id,name,sets,target,unit='total weight',increment=null)=>({id,name,sets,target,unit,increment,variants:null,loadUnit:['leg-extension','calf'].includes(id)?'unknown':'kg'});
 export const ROUTINES={
 Push:[ex('bench','Bench Press',2,'4–5'),ex('incline-db','Incline Dumbbell Press',2,'7–9','per dumbbell',2.5),ex('fly','Cable Flyes',2,'7–9','machine weight'),ex('dips','Dips',2,'7–9','choose weight type',null),ex('shoulder-db','Dumbbell Shoulder Press',2,'7–9','per dumbbell',2.5),ex('lateral','Lateral Raises',2,'8–12','choose weight type'),ex('skull','Skullcrushers',2,'7–9','choose weight type'),ex('pushdown','Tricep Pushdown',2,'10–12','machine weight')],
@@ -7,7 +10,7 @@ Legs:[ex('squat','Squats',3,'4–6'),ex('ham-curl','Hamstring Curls',2,'8–10',
 Upper:[ex('lat-upper','Lat Pulldown',2,'5–7','machine weight'),ex('incline-db','Incline Dumbbell Press',2,'7–9','per dumbbell',2.5),ex('wide-machine-row','Wide-Grip Machine Row',2,'5–7','machine weight',null),ex('smith-shoulder-press','Smith Machine Shoulder Press',2,'4–6','total weight',null),ex('lateral','Lateral Raises',2,'10–12','choose weight type'),ex('upper-curl','Barbell or Cable Curl',2,'8–10','choose weight type',null),ex('pushdown','Tricep Pushdown',2,'8–10','machine weight')],
 Lower:[ex('deadlift','Deadlift',2,'3–5','total weight',null),ex('bulgarian','Bulgarian Split Squats',2,'6–8 per leg','choose weight type'),ex('ham-curl','Hamstring Curls',2,'8–10','machine weight'),ex('leg-extension','Leg Extensions',2,'10–12','machine weight'),ex('calf','Calf Raises',2,'12–15','choose weight type'),ex('abs','Cable Crunches',2,'12–15','choose weight type',null)]};
 export const SEED=[['Push','bench',80,8,2,'reported','exact','total weight'],['Push','incline-db',30,12,2,'routine_inferred','exact','per dumbbell'],['Push','shoulder-db',25,11,2,'reported','exact','per dumbbell'],['Pull','mag-pulldown',20.5,8,2,'reported','exact','machine weight'],['Pull','smith-row',90,6,3,'reported','estimated','total weight'],['Pull','face-pull',23.7,9,2,'reported','exact','machine weight']].map(([day,id,weight,reps,sets,sets_source,precision,unit])=>({day,id,weight,reps,sets,sets_source,precision,unit,date:null,source:'user_reported',variant:null,effort:null}));
-export function createWeek(number,settings={}){return {id:crypto.randomUUID(),number,startedAt:new Date().toISOString(),archivedAt:null,bonus:false,days:Object.fromEntries(DAYS.map(day=>[day,{current:ROUTINES[day][0].id,entries:ROUTINES[day].map(e=>({...structuredClone(e),...settings[day+':'+e.id],completed:false,completedAt:null,weight:null,reps:null,effort:null,precision:'exact',variant:null}))}]))};}
+export function createWeek(number,settings={}){return {id:crypto.randomUUID(),number,startedAt:new Date().toISOString(),archivedAt:null,bonus:false,cardio:newCardio(),days:Object.fromEntries(DAYS.map(day=>[day,{current:ROUTINES[day][0].id,entries:ROUTINES[day].map(e=>({...structuredClone(e),...settings[day+':'+e.id],completed:false,completedAt:null,weight:null,reps:null,effort:null,precision:'exact',variant:null}))}]))};}
 export function initialState(){return {schema:1,programmeVersion:4,revision:0,active:createWeek(1),archives:[],seed:structuredClone([...SEED,...SEPTEMBER_RESULTS]),settings:{},view:{page:'home',day:null}};}
 export const remaining=(session)=>session.entries.filter(e=>!e.completed);
 export function currentEntry(session){return session.entries.find(e=>e.id===session.current)||session.entries[0];}
@@ -44,6 +47,7 @@ export function validateState(s){
  const ids=new Set();
  for(const w of [...s.archives,s.active]){
   if(!w||!str(w.id)||ids.has(w.id)||!Number.isInteger(w.number)||w.number<1||typeof w.bonus!=='boolean'||!w.days)fail();ids.add(w.id);
+  if(w.cardio!==undefined){const c=w.cardio;if(!c||!(c.type===null||CARDIO_TYPES.includes(c.type))||!Number.isInteger(c.minutes)||c.minutes<20||c.minutes>60||c.minutes%5!==0||!(c.heartRate===null||Number.isInteger(c.heartRate)&&c.heartRate>0&&c.heartRate<=300)||typeof c.completed!=='boolean'||!(c.completedAt===null||str(c.completedAt))||(c.completed&&!c.type))fail();}
   for(const d of DAYS){const ses=w.days[d];if(!ses||!Array.isArray(ses.entries)||ses.entries.length>100)fail();const seen=new Set();
    for(const e of ses.entries){if(!e||!str(e.id)||seen.has(e.id)||!str(e.name)||!(e.variants===null||Array.isArray(e.variants)&&e.variants.length<=20&&e.variants.every(v=>str(v)))||!(e.completedAt===null||str(e.completedAt))||!str(e.target)||!str(e.unit)||typeof e.completed!=='boolean'||!number(e.sets)||!(e.weight===null||number(e.weight))||!reps(e.reps)||!measure(e)||![null,'more','right','hard'].includes(e.effort)||!(e.increment===null||number(e.increment)&&e.increment>0)||!(e.variant===null||str(e.variant))||!['exact','estimated'].includes(e.precision))fail();seen.add(e.id);}
    if(!(ses.current===null||seen.has(ses.current)))fail();
@@ -51,11 +55,12 @@ export function validateState(s){
  }
  for(const e of s.seed)if(!e||!DAYS.includes(e.day)||!str(e.id)||!(e.weight===null||number(e.weight))||!reps(e.reps)||!str(e.unit)||!measure(e)||!['exact','estimated'].includes(e.precision)||!(e.date==null||str(e.date)))fail();
  for(const [key,v] of Object.entries(s.settings))if(!str(key)||!DAYS.some(d=>key.startsWith(d+':'))||!v||!str(v.unit)||!number(v.increment)||v.increment<=0||!measure(v)||Object.keys(v).some(k=>!['unit','increment','loadUnit'].includes(k)))fail();
- if(!s.view||!['home','day','history','backup','review'].includes(s.view.page)||!(s.view.day===null||DAYS.includes(s.view.day)))fail();
+ if(!s.view||!['home','day','history','backup','review','cardio'].includes(s.view.page)||!(s.view.day===null||DAYS.includes(s.view.day)))fail();
  return s;
 }
 export function migrateState(input){
  const s=structuredClone(validateState(input));
+ s.active.cardio??=newCardio();
  const removed=e=>['hip-thrust','abductor'].includes(e.id)||/hip[ -]?(thrust|abductor)/i.test(e.name);
  for(const day of DAYS){const session=s.active.days[day];
   for(const e of session.entries.filter(removed)){
@@ -87,5 +92,7 @@ export function toCSV(s){
  const rows=[['Week','Day','Exercise','Variant','Sets','Target reps','Completed','Weight','Measurement unit','Weight type','Weight precision','Reps','Effort','Date','Source','Sets source']];
  for(const w of [...s.archives,s.active])for(const d of DAYS)for(const e of w.days[d].entries)rows.push([w.number,d,e.name,e.variant,e.sets,e.target,e.completed,e.weight,loadUnit(e),e.unit,e.precision,e.reps,e.effort,e.completedAt,'app','routine']);
  for(const e of s.seed)rows.push(['Historical',e.day,e.name??e.id,e.variant,e.sets,e.target??'',e.completed??true,e.weight,loadUnit(e),e.unit,e.precision,e.reps,e.effort,e.date,e.source,e.sets_source]);
+ for(const row of rows)row.push(...(row===rows[0]?['Cardio Type','Minutes','Average Heart Rate']:['','','']));
+ for(const w of [...s.archives,s.active])if(w.cardio&&(w.cardio.type||w.cardio.completed||w.cardio.heartRate!==null||w.cardio.minutes!==20)){const c=w.cardio;rows.push([w.number,'Cardio','Cardio','','','',c.completed,'','','','','','',c.completedAt,'app','optional',c.type,c.minutes,c.heartRate]);}
  return rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');
 }
