@@ -53,7 +53,7 @@ export function createSpotify({notify=()=>{}}={}){
   if(!flow||!state||state!==flow.state||Date.now()-flow.created>600000)throw new Error('Spotify sign-in expired or opened in a different browser. Connect again from this app.');
   if(error)throw new Error('Spotify connection cancelled. You can connect again in Backup & settings.');
   await tokenRequest({grant_type:'authorization_code',code,redirect_uri:REDIRECT,code_verifier:flow.verifier},null,generation);
-  notify('Spotify connected. Start music in Spotify, then drag left to pause or play, or right for the next song.');return true;
+  notify('Spotify connected. Start music in Spotify, then drag up to pause or play, or down for the next song.');return true;
  }
  async function playback(action){
   if(busy)return false;
