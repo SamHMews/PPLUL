@@ -56,8 +56,10 @@ main[data-page=day]:has(.card-stack){padding-bottom:calc(.5rem + env(safe-area-i
 /* Flat momentary switch: compact visual, generous touch target. */
 .card-heading{padding-right:48px;min-height:68px}.card-stack .chips{padding-right:0;min-height:28px}.cardio-card .cardio-note:first-of-type{padding-right:0;min-height:0}
 .music-switch{--music-y:0px;position:absolute;top:1rem;right:1rem;width:44px;height:68px;min-height:68px;padding:0;border:0!important;border-radius:22px;background:transparent!important;box-shadow:none!important;touch-action:none!important;user-select:none;-webkit-user-select:none}
-.music-switch *{pointer-events:none}.music-track{position:absolute;left:8px;top:0;width:28px;height:68px;border-radius:14px;background:#715489}.music-thumb{position:absolute;left:2px;top:22px;width:24px;height:24px;border-radius:50%;background:#eee3f5;box-shadow:0 1px 2px #0003;transform:translateY(var(--music-y))}
-.music-switch.dragging .music-track{background:#8963a5}.music-switch:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.music-switch:disabled{opacity:.6}
-.exercise-card.is-complete .music-track{background:#397651}.exercise-card.is-complete .music-thumb{background:#e1f7e8}.exercise-card.is-complete .music-switch.dragging .music-track{background:#4b9468}
+.music-switch *{pointer-events:none}.music-track{position:absolute;left:8px;top:0;width:28px;height:68px;border-radius:14px;background:#392a49}.music-thumb{position:absolute;left:2px;top:22px;width:24px;height:24px;border-radius:50%;background:#d2b7ed;box-shadow:0 1px 2px #0003;transform:translateY(var(--music-y))}
+.music-switch.dragging .music-track{background:#392a49}.music-switch:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.music-switch:disabled{opacity:.6}
+.exercise-card.is-complete .music-track{background:#2c6447}.exercise-card.is-complete .music-thumb{background:#d5f6e1}.exercise-card.is-complete .music-switch.dragging .music-track{background:#2c6447}
 
-.music-icon{position:absolute;left:7px;width:14px;height:14px;color:var(--accent);opacity:1}.music-icon-up{top:5px}.music-icon-down{bottom:5px}.exercise-card.is-complete .music-icon{color:#e1f7e8}
+.music-icon{position:absolute;left:7px;width:14px;height:14px;color:#d2b7ed;opacity:1}.music-icon-up{top:5px}.music-icon-down{bottom:5px}.exercise-card.is-complete .music-icon{color:#d5f6e1}
+
+.previous-effort{display:inline-block;width:1rem;height:1rem;vertical-align:-.15rem;margin-left:.5rem;color:var(--accent)}
