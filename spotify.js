@@ -17,8 +17,16 @@ export function createSpotify({notify=()=>{}}={}){
  async function request(url,options){
   if(navigator.onLine===false)throw new Error('Go online to control Spotify.');
   const controller=new AbortController();let cancel,timer;
-  const interrupted=new Promise((_,reject)=>{cancel=()=>{controller.abort();const error=new Error('Spotify control interrupted. Try again.');error.name='AbortError';reject(error);};pending.add(cancel);timer=setTimeout(()=>{controller.abort();reject(new Error('Spotify took too long. Check your music before trying again.'));},12000);});
-  try{return await Promise.race([fetch(url,{...options,cache:'no-store',referrerPolicy:'no-referrer',signal:controller.signal}),interrupted]);}
+  const interrupted=new Promise((_,reject)=>{cancel=()=>{controller.abort();const error=new Error('Spotify control interrupted. Try again.');error.name='AbortError';reject(error);};pending.add(cancel);timer=setTimeout(()=>{controller.abort();reject(new Error('Spotify took too long. Check your music before trying again.'));},5000);});
+  try{
+   // A fetch resolves at headers; reading the body can still stall indefinitely.
+   // Keep timeout/background cancellation active through the entire response.
+   const complete=fetch(url,{...options,cache:'no-store',referrerPolicy:'no-referrer',signal:controller.signal}).then(async response=>{
+    const body=await response.text();
+    return {ok:response.ok,status:response.status,headers:response.headers,json:async()=>JSON.parse(body)};
+   });
+   return await Promise.race([complete,interrupted]);
+  }
   finally{clearTimeout(timer);pending.delete(cancel);}
  }
  async function tokenRequest(params,previous,epoch){
