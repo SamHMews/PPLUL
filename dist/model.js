@@ -31,10 +31,10 @@ export function repRange(e){const match=/^(\d+)\s*[–-]\s*(\d+)/.exec(e.target)
 export function repInputValue(e){const {min,max}=repRange(e);return e.reps!==null&&e.reps>=min&&e.reps<=max?e.reps:min;}
 export function previousResult(state,day,entry){
  const matches=e=>e.id===entry.id&&(e.weight!==null||e.reps!==null)&&(e.variant??null)===(entry.variant??null)&&loadUnit(e)===loadUnit(entry)&&(e.unit===entry.unit||entry.unit==='choose weight type'||e.unit==='choose weight type');
- const results=[];
- for(const w of [...state.archives,state.active])for(const d of [day,...DAYS.filter(x=>x!==day)])for(const e of w.days[d].entries)if(e.completed&&matches(e))results.push({...e,day:d,date:e.completedAt,week:w.number});
- results.push(...state.seed.filter(matches));
- return results.sort((a,b)=>(b.date??'').localeCompare(a.date??'')||(b.week??0)-(a.week??0))[0]??null;
+ // Only the matching session in the immediately preceding training week qualifies.
+ const week=state.archives.find(w=>w.number===state.active.number-1);
+ const result=week?.days[day]?.entries.find(e=>e.completed&&matches(e));
+ return result?{...result,day,date:result.completedAt,week:week.number}:null;
 }
 // Validate snapshots independently of today's templates: history is immutable.
 export function validateState(s){
