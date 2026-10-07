@@ -4,7 +4,7 @@ export const newCardio=()=>({type:null,minutes:20,heartRate:null,completed:false
 export const weekComplete=w=>DAYS.every(d=>w.days[d].entries.every(e=>e.completed));
 const ex=(id,name,sets,target,unit='total weight',increment=null)=>({id,name,sets,target,unit,increment,variants:null,loadUnit:['leg-extension','calf'].includes(id)?'unknown':'kg'});
 export const ROUTINES={
-Push:[ex('bench','Bench Press',2,'4–5'),ex('incline-db','Incline Dumbbell Press',2,'7–9','per dumbbell',2.5),ex('fly','Cable Flyes',2,'7–9','machine weight'),ex('dips','Dips',2,'7–9','choose weight type',null),ex('shoulder-db','Dumbbell Shoulder Press',2,'7–9','per dumbbell',2.5),ex('lateral','Lateral Raises',2,'8–12','choose weight type'),ex('skull','Skullcrushers',2,'7–9','choose weight type'),ex('pushdown','Tricep Pushdown',2,'10–12','machine weight')],
+Push:[ex('bench','Bench Press',2,'4–5'),ex('incline-db','Incline Dumbbell Press',2,'7–9','per dumbbell',2.5),ex('fly','Cable Flyes',2,'7–9','machine weight'),ex('shoulder-db','Dumbbell Shoulder Press',2,'7–9','per dumbbell',2.5),ex('lateral','Lateral Raises',2,'8–12','choose weight type'),ex('skull','Skullcrushers',2,'7–9','choose weight type'),ex('pushdown','Tricep Pushdown',2,'10–12','machine weight')],
 Pull:[ex('mag-pulldown','MAG Grip Lat Pulldowns',2,'7–9','machine weight'),ex('smith-row','Smith Machine Row',3,'5–7'),ex('wide-db-row','Chest-Supported Dumbbell Rows (Wide Pull, 45°)',3,'7–9','per dumbbell',2.5),ex('face-pull','Face Pulls (Two Ropes)',2,'7–9','machine weight'),ex('incline-curl','Incline Curls',2,'7–9','per dumbbell',2.5),ex('preacher','Preacher Curls',2,'5–7','choose weight type'),ex('hammer-cable','Hammer Cable Curls',2,'5–7','machine weight'),ex('reverse-ez','Reverse EZ Bar Curls',4,'8–12')],
 Legs:[ex('squat','Squats',3,'4–6'),ex('ham-curl','Hamstring Curls',2,'8–10','machine weight'),ex('leg-extension','Leg Extensions',2,'10–12','machine weight'),ex('calf','Calf Raises',2,'12–15','choose weight type')],
 Upper:[ex('lat-upper','Lat Pulldown',2,'5–7','machine weight'),ex('incline-db','Incline Dumbbell Press',2,'7–9','per dumbbell',2.5),ex('wide-machine-row','Wide-Grip Machine Row',2,'5–7','machine weight',null),ex('smith-shoulder-press','Smith Machine Shoulder Press',2,'4–6','total weight',null),ex('lateral','Lateral Raises',2,'10–12','choose weight type'),ex('upper-curl','Barbell or Cable Curl',2,'8–10','choose weight type',null),ex('pushdown','Tricep Pushdown',2,'8–10','machine weight')],
@@ -61,7 +61,7 @@ export function validateState(s){
 export function migrateState(input){
  const s=structuredClone(validateState(input));
  s.active.cardio??=newCardio();
- const removed=e=>['hip-thrust','abductor'].includes(e.id)||/hip[ -]?(thrust|abductor)/i.test(e.name);
+ const removed=e=>['dips','hip-thrust','abductor'].includes(e.id)||/hip[ -]?(thrust|abductor)/i.test(e.name);
  for(const day of DAYS){const session=s.active.days[day];
   for(const e of session.entries.filter(removed)){
    // Completed active results become historical records; no result is discarded.
@@ -72,7 +72,7 @@ export function migrateState(input){
   for(const e of session.entries){e.variants=null;if(e.loadUnit===undefined)e.loadUnit=e.weight===null&&!e.completed?ROUTINES[day].find(x=>x.id===e.id)?.loadUnit??'kg':'kg';}
   if(!session.entries.some(e=>e.id===session.current))session.current=session.entries[0]?.id??null;
  }
- for(const key of Object.keys(s.settings))if(key.endsWith(':hip-thrust')||key.endsWith(':abductor'))delete s.settings[key];
+ for(const key of Object.keys(s.settings))if(key==='Push:dips'||key.endsWith(':hip-thrust')||key.endsWith(':abductor'))delete s.settings[key];
  for(const result of SEPTEMBER_RESULTS)if(!s.seed.some(x=>x.sourceId===result.sourceId||x.date===result.date&&x.id===result.id&&x.day===result.day&&x.weight===result.weight&&x.reps===result.reps&&loadUnit(x)===loadUnit(result)))s.seed.push(structuredClone(result));
  for(const setting of Object.values(s.settings))if(setting.loadUnit===undefined)setting.loadUnit='kg';
  const upper=s.active.days.Upper;
