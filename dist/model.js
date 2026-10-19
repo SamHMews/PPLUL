@@ -7,11 +7,11 @@ export const ROUTINES={
 Push:[ex('bench','Bench Press',2,'4–5'),ex('incline-db','Incline Dumbbell Press',2,'7–9','per dumbbell',2.5),ex('fly','Cable Flyes',2,'7–9','machine weight'),ex('shoulder-db','Dumbbell Shoulder Press',2,'7–9','per dumbbell',2.5),ex('lateral','Lateral Raises',2,'8–12','choose weight type'),ex('skull','Skullcrushers',2,'7–9','choose weight type'),ex('pushdown','Tricep Pushdown',2,'10–12','machine weight')],
 Pull:[ex('mag-pulldown','MAG Grip Lat Pulldowns',2,'7–9','machine weight'),ex('smith-row','Smith Machine Row',3,'5–7'),ex('wide-db-row','Chest-Supported Dumbbell Rows (Wide Pull, 45°)',3,'7–9','per dumbbell',2.5),ex('face-pull','Face Pulls (Two Ropes)',2,'7–9','machine weight'),ex('incline-curl','Incline Curls',2,'7–9','per dumbbell',2.5),ex('preacher','Preacher Curls',2,'5–7','choose weight type'),ex('hammer-cable','Hammer Cable Curls',2,'5–7','machine weight'),ex('reverse-ez','Reverse EZ Bar Curls',4,'8–12')],
 Legs:[ex('squat','Squats',3,'4–6'),ex('ham-curl','Hamstring Curls',2,'8–10','machine weight'),ex('leg-extension','Leg Extensions',2,'10–12','machine weight'),ex('calf','Calf Raises',2,'12–15','choose weight type')],
-Upper:[ex('lat-upper','Lat Pulldown',2,'5–7','machine weight'),ex('incline-db','Incline Dumbbell Press',2,'7–9','per dumbbell',2.5),ex('wide-machine-row','Wide-Grip Machine Row',2,'5–7','machine weight',null),ex('smith-shoulder-press','Smith Machine Shoulder Press',2,'4–6','total weight',null),ex('lateral','Lateral Raises',2,'10–12','choose weight type'),ex('upper-curl','Barbell or Cable Curl',2,'8–10','choose weight type',null),ex('pushdown','Tricep Pushdown',2,'8–10','machine weight')],
+Upper:[ex('lat-upper','Lat Pulldown',2,'5–7','machine weight'),ex('incline-db','Incline Dumbbell Press',2,'7–9','per dumbbell',2.5),ex('wide-machine-row','Wide-Grip Machine Row',2,'5–7','machine weight',null),ex('smith-shoulder-press','Smith Machine Shoulder Press',2,'4–6','total weight',null),ex('lateral','Seated Lateral Raises',2,'10–12','choose weight type'),ex('upper-curl','Barbell or Cable Curl',2,'8–10','choose weight type',null),{...ex('bodyweight-tricep-extensions','Bodyweight Tricep Extensions (Bar)',2,'8–10','bodyweight'),description:'Also known as Bodyweight Skull Crushers. With feet elevated and hands gripping a fixed bar, bend your elbows to lower your head beneath the bar, then extend your arms.'}],
 Lower:[ex('deadlift','Deadlift',2,'3–5','total weight',null),ex('bulgarian','Bulgarian Split Squats',2,'6–8 per leg','choose weight type'),ex('ham-curl','Hamstring Curls',2,'8–10','machine weight'),ex('leg-extension','Leg Extensions',2,'10–12','machine weight'),ex('calf','Calf Raises',2,'12–15','choose weight type'),ex('abs','Cable Crunches',2,'12–15','choose weight type',null)]};
 export const SEED=[['Push','bench',80,8,2,'reported','exact','total weight'],['Push','incline-db',30,12,2,'routine_inferred','exact','per dumbbell'],['Push','shoulder-db',25,11,2,'reported','exact','per dumbbell'],['Pull','mag-pulldown',20.5,8,2,'reported','exact','machine weight'],['Pull','smith-row',90,6,3,'reported','estimated','total weight'],['Pull','face-pull',23.7,9,2,'reported','exact','machine weight']].map(([day,id,weight,reps,sets,sets_source,precision,unit])=>({day,id,weight,reps,sets,sets_source,precision,unit,date:null,source:'user_reported',variant:null,effort:null}));
 export function createWeek(number,settings={}){return {id:crypto.randomUUID(),number,startedAt:new Date().toISOString(),archivedAt:null,bonus:false,cardio:newCardio(),days:Object.fromEntries(DAYS.map(day=>[day,{current:ROUTINES[day][0].id,entries:ROUTINES[day].map(e=>({...structuredClone(e),...settings[day+':'+e.id],completed:false,completedAt:null,weight:null,reps:null,effort:null,precision:'exact',variant:null}))}]))};}
-export function initialState(){return {schema:1,programmeVersion:4,revision:0,active:createWeek(1),archives:[],seed:structuredClone([...SEED,...SEPTEMBER_RESULTS]),settings:{},view:{page:'home',day:null}};}
+export function initialState(){return {schema:1,programmeVersion:5,revision:0,active:createWeek(1),archives:[],seed:structuredClone([...SEED,...SEPTEMBER_RESULTS]),settings:{},view:{page:'home',day:null}};}
 export const remaining=(session)=>session.entries.filter(e=>!e.completed);
 export function currentEntry(session){return session.entries.find(e=>e.id===session.current)||session.entries[0];}
 export function navigate(session,delta){const r=session.entries;if(!r.length)return;const i=r.findIndex(e=>e.id===session.current);session.current=r[(Math.max(0,i)+delta+r.length)%r.length].id;}
@@ -30,11 +30,23 @@ export function weightText(e){return e.weight===null?'Weight not logged':(e.prec
 export function repRange(e){const match=/^(\d+)\s*[–-]\s*(\d+)/.exec(e.target);if(!match)throw new Error('Exercise prescription is missing a rep range.');const min=Number(match[1]),max=Number(match[2]);if(max<min||max-min>100)throw new Error('Invalid exercise rep range.');return {min,max,values:Array.from({length:max-min+1},(_,i)=>min+i)};}
 export function repInputValue(e){const {min,max}=repRange(e);return e.reps!==null&&e.reps>=min&&e.reps<=max?e.reps:min;}
 export function previousResult(state,day,entry){
- const matches=e=>e.id===entry.id&&(e.weight!==null||e.reps!==null)&&(e.variant??null)===(entry.variant??null)&&loadUnit(e)===loadUnit(entry)&&(e.unit===entry.unit||entry.unit==='choose weight type'||e.unit==='choose weight type');
- // Only the matching session in the immediately preceding training week qualifies.
- const week=state.archives.find(w=>w.number===state.active.number-1);
- const result=week?.days[day]?.entries.find(e=>e.completed&&matches(e));
- return result?{...result,day,date:result.completedAt,week:week.number}:null;
+ // The active week never participates, so saving or undoing this week's result cannot replace its reference.
+ const matches=e=>e.id===entry.id&&(e.weight!=null||e.reps!=null||e.effort!=null)&&(e.variant??null)===(entry.variant??null);
+ const candidates=[];
+ for(const week of state.archives){
+  if(week.id===state.active.id||week.number>=state.active.number)continue;
+  for(const e of week.days[day]?.entries??[])if(e.completed&&matches(e))candidates.push({...e,day,date:e.completedAt??week.archivedAt??week.startedAt,week:week.number});
+ }
+ for(const e of state.seed){
+  if(e.day!==day||!matches(e)||e.completed===false)continue;
+  // Retired entries from this active week are preserved in seed, but are not an earlier result.
+  if(e.sourceId?.includes(state.active.id))continue;
+  if(e.date&&Date.parse(e.date)>=Date.parse(state.active.startedAt))continue;
+  candidates.push({...e});
+ }
+ const timestamp=e=>Date.parse(e.date)||0;
+ candidates.sort((a,b)=>timestamp(b)-timestamp(a)||(b.week??0)-(a.week??0));
+ return candidates[0]??null;
 }
 // Validate snapshots independently of today's templates: history is immutable.
 export function validateState(s){
@@ -76,7 +88,7 @@ export function migrateState(input){
  for(const result of SEPTEMBER_RESULTS)if(!s.seed.some(x=>x.sourceId===result.sourceId||x.date===result.date&&x.id===result.id&&x.day===result.day&&x.weight===result.weight&&x.reps===result.reps&&loadUnit(x)===loadUnit(result)))s.seed.push(structuredClone(result));
  for(const setting of Object.values(s.settings))if(setting.loadUnit===undefined)setting.loadUnit='kg';
  const upper=s.active.days.Upper;
- for(const [oldId,newId] of [['upper-row','wide-machine-row'],['upper-press','smith-shoulder-press']]){
+ for(const [oldId,newId] of [['upper-row','wide-machine-row'],['upper-press','smith-shoulder-press'],['pushdown','bodyweight-tricep-extensions']]){
   const index=upper.entries.findIndex(e=>e.id===oldId);if(index<0)continue;
   const old=upper.entries[index],sourceId='replaced:'+s.active.id+':Upper:'+old.id;
   if((old.completed||old.weight!==null||old.reps!==null||old.effort!==null)&&!s.seed.some(e=>e.sourceId===sourceId))s.seed.push({...structuredClone(old),day:'Upper',date:old.completedAt,source:'programme_migration',sourceId,sets_source:'routine'});
@@ -85,7 +97,10 @@ export function migrateState(input){
   delete s.settings['Upper:'+oldId];
  }
  for(const e of s.active.days.Lower.entries){if(e.id==='deadlift')e.name='Deadlift';if(e.id==='abs')e.name='Cable Crunches';}
- s.programmeVersion=4;
+ // This is a rename, so keep all recorded values and use the same name in cards, history and exports.
+ for(const week of [...s.archives,s.active])for(const e of week.days.Upper.entries)if(e.id==='lateral')e.name='Seated Lateral Raises';
+ for(const e of s.seed)if(e.day==='Upper'&&e.id==='lateral')e.name='Seated Lateral Raises';
+ s.programmeVersion=5;
  return validateState(s);
 }
 export function toCSV(s){
