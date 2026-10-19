@@ -31,14 +31,16 @@ export function repRange(e){const match=/^(\d+)\s*[–-]\s*(\d+)/.exec(e.target)
 export function repInputValue(e){const {min,max}=repRange(e);return e.reps!==null&&e.reps>=min&&e.reps<=max?e.reps:min;}
 export function previousResult(state,day,entry){
  // The active week never participates, so saving or undoing this week's result cannot replace its reference.
- const matches=e=>e.id===entry.id&&(e.weight!=null||e.reps!=null||e.effort!=null)&&(e.variant??null)===(entry.variant??null);
+ // Shared exercises can use another day's earlier result; seated and standing raises are distinct.
+ const identity=(d,e)=>e.id==='lateral'&&d==='Upper'?'seated-lateral':e.id;
+ const matches=(e,d)=>identity(d,e)===identity(day,entry)&&(e.weight!=null||e.reps!=null||e.effort!=null)&&(e.variant??null)===(entry.variant??null);
  const candidates=[];
  for(const week of state.archives){
   if(week.id===state.active.id||week.number>=state.active.number)continue;
-  for(const e of week.days[day]?.entries??[])if(e.completed&&matches(e))candidates.push({...e,day,date:e.completedAt??week.archivedAt??week.startedAt,week:week.number});
+  for(const recordedDay of DAYS)for(const e of week.days[recordedDay]?.entries??[])if(e.completed&&matches(e,recordedDay))candidates.push({...e,day:recordedDay,date:e.completedAt??week.archivedAt??week.startedAt,week:week.number});
  }
  for(const e of state.seed){
-  if(e.day!==day||!matches(e)||e.completed===false)continue;
+  if(!matches(e,e.day)||e.completed===false)continue;
   // Retired entries from this active week are preserved in seed, but are not an earlier result.
   if(e.sourceId?.includes(state.active.id))continue;
   if(e.date&&Date.parse(e.date)>=Date.parse(state.active.startedAt))continue;
