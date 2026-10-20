@@ -1,6 +1,6 @@
 const fs=require('node:fs'),http=require('node:http'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 const root=fs.existsSync('dist/index.html')?'dist':'.',urlOf=f=>require('node:url').pathToFileURL(path.resolve(root,f));
-const sha=s=>crypto.createHash('sha256').update(s.replaceAll('\r\n','\n').trimEnd()).digest('hex');
+const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceAll('\r\n','\n').trimEnd()).digest('hex');
 (async()=>{
  const contract=JSON.parse(fs.readFileSync('card-contract.json')),app=fs.readFileSync(path.join(root,'app.js'),'utf8');
  for(const {start,end,sha:expected} of contract.sections)assert.equal(sha(app.slice(app.indexOf(start),app.indexOf(end,app.indexOf(start))).trim()),expected,'Logging contract changed: '+start);
