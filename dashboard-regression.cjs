@@ -10,6 +10,8 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
  put('bench',50);put('incline-db',22,'lb',9);put('lateral',11,'unknown',10);m.archiveWeek(s);
  // Week 2 is intentionally missing. Week 3 has an incomplete workout and an actual zero result.
  m.archiveWeek(s);put('bench',60);put('incline-db',0,'lb',8);
+ s.active.days.Push.entries.find(e=>e.id==='lateral').loadUnit='unknown';
+ Object.assign(s.active.days.Legs.entries[0],{weight:200,loadUnit:'kg',completed:true});
  s.seed.push({id:'removed-exercise',day:'Push',name:'Removed exercise',weight:20,reps:8,unit:'total weight',precision:'exact',date:null});
  const snapshot=JSON.stringify(s),data=report.progressData(s,'Push');assert.equal(JSON.stringify(s),snapshot);
  assert.deepEqual(data.series.find(x=>x.id==='bench').points.map(x=>x.week),[1,3]);
@@ -34,6 +36,14 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   await p.addStyleTag({content:':root{--shell-safe-top:47px;--shell-safe-bottom:34px}'});
   assert(await p.evaluate(()=>{const a=document.querySelector('#app'),f=document.querySelector('.app-footer');return Math.abs(f.getBoundingClientRect().bottom-innerHeight)<1&&a.scrollHeight<=a.clientHeight+1&&getComputedStyle(f).backdropFilter==='none';}),'Solid footer is flush with viewport and home fits with real safe-area space');
   assert((await p.locator('.home-grid .tile').first().boundingBox()).height<=119,'Tiles should not stretch to fill screen');
+  assert(await p.locator('#app').evaluate(e=>e.getBoundingClientRect().top>=47),'Status area is reserved outside the scroll surface');
+  assert(await p.locator('.new-week-action').evaluate(e=>e.getBoundingClientRect().height>=44),'New week target is at least 44px');
+  await p.evaluate(()=>{Object.defineProperty(visualViewport,'height',{configurable:true,value:724});visualViewport.dispatchEvent(new Event('resize'));});
+  await p.waitForFunction(()=>Math.abs(document.querySelector('.app-footer').getBoundingClientRect().bottom-724)<1);
+  assert(await p.locator('#app').evaluate(e=>e.getBoundingClientRect().bottom<=document.querySelector('.app-footer').getBoundingClientRect().top),'Content and navigation fit a shorter visible viewport');
+  await p.evaluate(()=>{delete visualViewport.height;visualViewport.dispatchEvent(new Event('resize'));});
+  await p.waitForFunction(()=>Math.abs(document.querySelector('.app-footer').getBoundingClientRect().bottom-innerHeight)<1);
+
   fs.mkdirSync('test-artifacts' ,{recursive:true});await p.evaluate(async()=>{await Promise.all(document.getAnimations().map(a=>a.finished.catch(()=>{})));scrollTo(0,0);});await p.screenshot({path:'test-artifacts/dashboard-home.png'});
   await p.locator('[data-action=cardio]').click();await p.locator('#cardio-type').selectOption('Boxing');await p.locator('#cardio-heart').fill('145');await p.locator('#cardio-heart').blur();await p.locator('[data-action=cardio-done]').click();await p.locator('.cardio-card.is-complete').waitFor();await p.locator('[data-action=home]').click();
   await p.locator('.tile[data-action=cardio].complete').waitFor();assert.equal(await p.locator('.week-segments .complete').count(),0,'Optional Cardio never counts as a main day');
@@ -59,36 +69,66 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   await p.locator('#overview-toggle').click();assert.equal(await p.locator('.overview-row.is-complete').count(),1);assert.equal(await p.locator('#app').getAttribute('data-entrance'),'false');
   await p.locator('[data-action=continue-workout]').click();assert.equal(await p.locator('.is-front').getAttribute('data-entry'),'face-pull');
   await p.reload();await p.locator('.is-front.is-complete').waitFor();assert.equal(await p.locator('.is-front output').innerText(),'9');assert.notEqual(await p.locator('.is-front .weight-value span').innerText(),'—');assert.equal(await p.locator('.app-footer').count(),0);
-  await p.locator('[data-action=home]').click();await p.locator('[data-route=progress]').click();await p.locator('.weight-chart').waitFor();
+  await p.locator('[data-action=home]').click();await p.locator('[data-route=progress]').click();await p.locator('.weight-chart').first().waitFor();
   await p.evaluate(async fixture=>{const db=await import('./storage.js'),existing=await db.readState();fixture.revision=existing.revision+1;fixture.view={page:'progress',day:null};await db.persist(fixture,existing.revision);},s);
-  await p.setViewportSize({width:390,height:844});await p.reload();await p.locator('.weight-chart').waitFor();
-  assert.equal(await p.locator('.axis-unit').count(),0);
-  assert.equal(await p.locator('.chart-grid').count(),3,'Only one numeric scale');
-  assert(!/\bkg\b|\blb\b|Unknown unit/.test(await p.locator('.report-surface').innerText()),'Report has no measurement unit labels');
-  const bench=p.locator('.chart-series').filter({has:p.locator('[aria-label^="Bench Press, Week 1"]')});
-  assert.equal((await bench.locator('.chart-line').getAttribute('d')).match(/M/g).length,2,'Missing week breaks path');
-  assert(!/[CQ]/.test(await bench.locator('.chart-line').getAttribute('d')),'Straight segments only');
-  await p.locator('[aria-label^="Bench Press, Week 3"]').click();
-  assert.match(await p.locator('.point-detail').innerText(),/Week 3.*60/s);
-  await p.evaluate(()=>{window.chartElement=document.querySelector('.weight-chart');window.detailBefore=document.querySelector('.point-detail').innerHTML;});
-  await p.getByRole('button',{name:'Deselect All',exact:true}).click();
-  assert(await p.evaluate(()=>window.chartElement===document.querySelector('.weight-chart')&&window.detailBefore===document.querySelector('.point-detail').innerHTML));
-  assert.equal(await p.locator('.chart-series:not(.is-hidden)').count(),0);
-  await p.getByRole('button',{name:'Show only Bench Press',exact:true}).click();
-  assert.equal(await p.locator('[data-series-toggle][aria-pressed=true]').count(),1);
-  await p.getByRole('button',{name:'Select All',exact:true}).click();
-  await p.locator('[aria-label^="Lateral Raises, Week 1"]').click();assert(!/11 kg|11 lb/.test(await p.locator('.point-detail').innerText()));
-  await p.evaluate(async()=>{await Promise.all(document.getAnimations().map(a=>a.finished.catch(()=>{})));scrollTo(0,0);});await p.screenshot({path:'test-artifacts/dashboard-progress.png'});
-  await p.locator('#app').evaluate(e=>e.scrollTop=e.scrollHeight);
-  assert(await p.locator('#app').evaluate(e=>e.scrollTop>0),'Long reporting page scrolls within shell');
-  assert(await p.locator('.app-footer').evaluate(e=>Math.abs(e.getBoundingClientRect().bottom-innerHeight)<1),'Footer remains anchored when content scrolls');
+  await p.setViewportSize({width:390,height:844});await p.reload();await p.locator('.weight-chart').first().waitFor();
+  const current=p.locator('.graph-card.is-current');
+  assert.equal(await p.locator('.exercise-filters').count(),0,'No exercise list below graph cards');
+  assert.equal(await p.locator('.graph-card').count(),data.series.length,'Every configured and retired exercise has a graph');
+  assert.equal(await current.locator('.graph-unit').innerText(),'kg','Graph inherits configured weight unit');
+  assert.equal(await current.locator('.chart-grid').count(),7,'Numeric axis uses 10-unit steps');
+  assert.equal((await current.locator('.chart-line').getAttribute('d')).match(/M/g).length,2,'Missing week breaks path');
+  assert(!/[CQ]/.test(await current.locator('.chart-line').getAttribute('d')),'Straight segments only');
+  const selectedPoint=current.locator('[aria-label^="Bench Press, Week 3"]');
+  await selectedPoint.focus();await p.keyboard.press('Enter');assert.equal(await selectedPoint.getAttribute('aria-pressed'),'true');
+  assert.match(await current.locator('.point-detail').innerText(),/Week 3.*60 kg/s);
+  await p.evaluate(()=>{window.chartElement=document.querySelector('.graph-card.is-current .weight-chart');});
+  // Actual touch drag moves the physical graph card rather than replacing its text.
+  const box=await current.locator('.graph-heading').boundingBox(),origin={x:box.x+box.width*.8,y:box.y+box.height/2};
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[origin]});
+  for(let i=1;i<=10;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:origin.x-240*i/10,y:origin.y}]});await p.waitForTimeout(20);}
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await p.waitForFunction(()=>document.querySelector('.graph-card.is-current')?.dataset.graphIndex==='1');
+  assert.equal(await current.locator('.graph-unit').innerText(),'lb');
+  await p.getByRole('button',{name:'Previous exercise graph',exact:true}).click();
+  await p.waitForFunction(()=>document.querySelector('.graph-deck').scrollLeft<1);
+  assert(await p.evaluate(()=>window.chartElement===document.querySelector('.graph-card.is-current .weight-chart')),'Returning to a graph preserves its DOM and selected result');
+  assert.match(await current.locator('.point-detail').innerText(),/60 kg/);
+  await p.locator('.graph-deck').focus();await p.keyboard.press('ArrowRight');await p.waitForTimeout(400);
+  assert.equal(await current.getAttribute('data-graph-index'),'1','Keyboard navigation matches swiping');
+  // Different historical units are accessible without relabelling values or converting them.
+  await p.evaluate(async()=>{const db=await import('./storage.js'),s=await db.readState(),rev=s.revision;s.active.days.Push.entries[0].loadUnit='lb';await db.persist(s,rev);});
+  await p.reload();await p.locator('.graph-card.is-current').waitFor();
+  assert.equal(await current.locator('.graph-unit').innerText(),'lb');
+  await current.getByRole('combobox').selectOption('kg');assert.equal(await current.locator('[data-point]').count(),1);
+  await current.getByRole('combobox').selectOption('lb');assert.equal(await current.locator('[data-point]').count(),1);
+  await p.locator('.graph-deck').focus();for(let i=0;i<4;i++){await p.keyboard.press('ArrowRight');await p.waitForTimeout(350);}
+  assert.equal(await current.locator('h2').innerText(),'Lateral Raises');assert.equal(await current.locator('.graph-unit').innerText(),'','Unknown unit has no suffix');
+  await p.locator('[data-report-day=Legs]').click();
+  assert.deepEqual(await current.locator('.axis-value[text-anchor="end"]').allTextContents(),Array.from({length:21},(_,i)=>String(i*10)),'Legs 0–200 axis shows every ten');
+  assert(await current.locator('.weight-chart').evaluate(e=>{const labels=[...e.querySelectorAll('.axis-value[text-anchor="end"]')].map(x=>x.getBoundingClientRect());return labels.every((r,i)=>i===0||labels[i-1].top-r.bottom>=0);}),'Dense axis labels remain separated');
+  await p.evaluate(async()=>{await Promise.all(document.getAnimations().map(a=>a.finished.catch(()=>{})));});await p.screenshot({path:'test-artifacts/dashboard-progress.png'});
+  assert(await p.locator('.app-footer').evaluate(e=>Math.abs(e.getBoundingClientRect().bottom-innerHeight)<1),'Footer remains visible with graph cards');
   await p.locator('[data-report-day=Upper]').click();assert.equal(await p.locator('[data-report-day=Upper]').getAttribute('aria-pressed'),'true');
   await p.locator('[data-route=home]').click();assert.equal(await p.locator('#app').evaluate(e=>e.scrollTop),0);await p.locator('[data-action=new-week]').click();await p.locator('[data-close]').click();assert.match(await p.locator('.eyebrow').innerText(),/Week 3/i);
   await p.locator('[data-action=new-week]').click();await p.locator('#confirm-action').click();await p.getByText('Training · Week 4',{exact:true}).waitFor();
   const saved=await p.evaluate(async()=>await (await import('./storage.js')).readState());assert.equal(saved.archives.length,3);assert.equal(saved.archives[0].days.Push.entries[0].weight,50);assert(saved.active.days.Push.entries.every(e=>!e.completed));
   await p.emulateMedia({reducedMotion:'reduce'});await p.locator('[data-route=progress]').click();
   assert.equal(await p.locator('.chart-reveal').first().evaluate(e=>getComputedStyle(e).animationName),'none');
+
+  await p.emulateMedia({contrast:'more',reducedMotion:'reduce'});
+  assert.equal(await p.locator('.chart-grid').first().evaluate(e=>getComputedStyle(e).stroke),'rgb(142, 129, 154)','Increased contrast produces stronger chart gridlines');
+  await p.locator('[data-route=home]').click();
+  await p.addStyleTag({content:'html{font-size:200%}'});
+  assert(await p.locator('#app').evaluate(e=>e.scrollWidth<=e.clientWidth+1),'Enlarged text does not create horizontal overflow');
+  await p.locator('[data-day=Pull]').click();await p.locator('#overview-toggle').click();
+  assert(await p.locator('.overview-name').evaluateAll(es=>es.every(e=>e.scrollHeight<=e.clientHeight+1&&e.scrollWidth<=e.clientWidth+1)),'Long exercise names wrap at enlarged text sizes');
+  await p.locator('.overview-row').last().scrollIntoViewIfNeeded();
+  assert(await p.locator('.overview-row').last().isVisible(),'Last exercise remains reachable with enlarged text');
+  assert(await p.locator('.app-footer').evaluate(e=>Math.abs(e.getBoundingClientRect().bottom-innerHeight)<1),'Enlarged text preserves anchored navigation');
+  await p.locator('[data-route=progress]').click();await p.locator('[data-report-day=Legs]').click();
+  assert(await p.locator('.graph-card.is-current .weight-chart').evaluate(e=>{const a=[...e.querySelectorAll('.axis-value[text-anchor="end"]')].map(x=>x.getBoundingClientRect());return a.every((r,i)=>i===0||a[i-1].top-r.bottom>=0);}),'200% chart labels stay separated');
   assert.deepEqual(errors,[]);
-  console.log('PASS mobile dashboard/overview, fixed navigation, point details/filter persistence, restoration, week archive and reduced motion');
+  console.log('PASS mobile dashboard/overview, fixed navigation, swipeable unit-aware graph cards, restoration, week archive and reduced motion');
  }finally{await browser?.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

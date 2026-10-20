@@ -35,68 +35,71 @@ export function progressMarkup(){
  return '<header class="screen-heading"><div><p class="eyebrow">Your training</p><h1>Progress</h1></div></header><div id="progress-report"></div>';
 }
 export function mountProgress(root,state,view){
- view.day??='Push';view.hidden??={};view.windows??={};view.selected??={};
- let data,hidden,chart,detail,selected,focus=null,disposed=false,hasDrawn=false;
- const days=['Push','Pull','Legs','Upper','Lower'];
- root.innerHTML='<div class="workout-selector" role="group" aria-label="Workout">'+days.map(d=>`<button type="button" data-report-day="${d}" aria-pressed="${d===view.day}">${d}</button>`).join('')+'</div><section class="report-surface"><div class="report-heading"><h2>Working weight</h2><span id="chart-period"></span></div><div class="chart-window"><button type="button" data-window="-1" aria-label="Earlier training weeks">‹</button><span>Training week</span><button type="button" data-window="1" aria-label="Later training weeks">›</button></div><div class="chart-stage"></div><div class="point-detail" aria-live="polite"></div></section><div class="filter-heading"><h2>Exercises</h2><div><button type="button" data-filter-all="true">Select All</button><button type="button" data-filter-all="false">Deselect All</button></div></div><div class="exercise-filters"></div><p class="report-note">Completed exercises · Gaps mean no recorded weight. Dumbbells use the recorded per-dumbbell weight.</p><div class="earlier-records"></div>';
- chart=root.querySelector('.chart-stage');detail=root.querySelector('.point-detail');
- function draw(){
-  const duration=hasDrawn?280:620;hasDrawn=true;chart.style.setProperty('--draw-duration',duration+'ms');
-  data=progressData(state,view.day);hidden=new Set(view.hidden[view.day]||[]);selected=view.selected[view.day]||null;
-  if(selected){const series=data.series.find(s=>s.key===selected.key),point=series?.points.find(p=>p.weekId===selected.weekId);selected=point?{...point,key:series.key,seriesName:series.name,colour:series.colour}:null;view.selected[view.day]=selected;}
-  focus=selected?.key??null;
-  const total=data.weeks.length,start=Math.min(view.windows[view.day]??Math.max(0,total-12),Math.max(0,total-1));
-  const weeks=data.weeks.slice(start,start+12);view.windows[view.day]=start;
-  root.querySelector('[data-window="-1"]').disabled=start===0;
-  root.querySelector('[data-window="1"]').disabled=start+12>=total;
-  root.querySelector('#chart-period').textContent=weeks.length>1?`Weeks ${weeks[0]}–${weeks.at(-1)}`:`Week ${weeks[0]}`;
-  // One numeric scale; stored units and recorded amounts are never converted or changed.
-  const W=344,H=218,left=39,right=330,plot=right-left,top=14,bottom=H-30;
-  const x=w=>weeks.length===1?(left+right)/2:left+weeks.indexOf(w)*plot/(weeks.length-1);
-  const values=data.series.flatMap(s=>s.points.filter(p=>weeks.includes(p.week)).map(p=>p.weight));
-  const maximum=Math.max(1,...values),step=Math.pow(10,Math.floor(Math.log10(maximum)))/2,max=Math.ceil(maximum/step)*step;
-  const y=value=>bottom-value/max*(bottom-top);
-  let axes='',groups='',points=[];
-  for(const value of [0,max/2,max]){const yy=y(value);axes+=`<path class="chart-grid" d="M${left} ${yy}H${right}"/><text class="axis-value" x="${left-7}" y="${yy+3}" text-anchor="end">${Number(value.toFixed(2))}</text>`;}
-  for(const s of data.series){
-   let path='',prior=null,markers='';
-   for(const p of s.points.filter(p=>weeks.includes(p.week))){
-    const xx=x(p.week),yy=y(p.weight);
-    // Missing weeks and equipment/unit changes break the line rather than implying progression.
-    path+=(prior&&p.week===prior.week+1&&p.unit===prior.unit&&p.loadUnit===prior.loadUnit?'L':'M')+xx+' '+yy+' ';
-    const point={...p,key:s.key,seriesName:s.name,colour:s.colour};const n=points.push(point)-1;
-    markers+=`<g class="chart-point" role="button" tabindex="0" data-point="${n}" style="--point-delay:${Math.round((xx-left)/plot*duration)}ms" aria-label="${esc(s.name)}, Week ${p.week}, ${esc(valueText(p))}${p.reps==null?'':', '+p.reps+' reps'}"><circle class="point-hit" cx="${xx}" cy="${yy}" r="12"/><circle class="point-dot" cx="${xx}" cy="${yy}" r="3"/></g>`;
-    prior=p;
+ view.day??='Push';view.cardIndices??={};view.windows??={};view.points??={};view.units??={};view.configuredUnits??={};
+ const days=['Push','Pull','Legs','Upper','Lower'];let disposeDeck=()=>{};
+ const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const unitLabel=unit=>unit==='unknown'?'':unit;
+ const result=p=>valueText(p)+(unitLabel(p.loadUnit)?' '+unitLabel(p.loadUnit):'');
+ root.innerHTML='<div class="workout-selector" role="group" aria-label="Workout">'+days.map(d=>`<button type="button" data-report-day="${d}" aria-pressed="${d===view.day}">${d}</button>`).join('')+'</div><div class="graph-deck" role="region" aria-roledescription="carousel" aria-label="Exercise progress graphs" tabindex="0"></div><div class="graph-pager"><button type="button" data-graph-direction="-1" aria-label="Previous exercise graph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><span class="graph-position" aria-live="polite"></span><button type="button" data-graph-direction="1" aria-label="Next exercise graph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></div>';
+ const deck=root.querySelector('.graph-deck');
+ function drawDay(){
+  disposeDeck();const day=view.day,data=progressData(state,day);let scrollFrame=0,index=Math.min(view.cardIndices[day]||0,Math.max(0,data.series.length-1));
+  deck.innerHTML=data.series.map((s,n)=>`<article class="graph-card report-surface" data-graph-index="${n}" aria-roledescription="slide" aria-label="${esc(s.name)}, ${n+1} of ${data.series.length}"><div class="graph-heading"><div><p class="eyebrow">${s.current?'Working weight':'Previous exercise'}</p><h2>${esc(s.name)}</h2></div><span class="graph-unit"></span></div><div class="chart-window"><button type="button" data-window="-1" aria-label="Earlier training weeks">‹</button><span></span><button type="button" data-window="1" aria-label="Later training weeks">›</button></div><div class="graph-unit-options"></div><div class="chart-stage"></div><div class="point-detail" aria-live="polite"></div><div class="earlier-records"></div></article>`).join('');
+  const cards=[...deck.querySelectorAll('.graph-card')];
+  cards.forEach((card,n)=>{
+   const series=data.series[n],key=day+':'+series.key,configured=state.active.days[day].entries.find(e=>keyOf(e)===series.key);
+   const preferred=loadUnit(configured||series.points.at(-1)||data.unassigned.find(p=>p.key===series.key)||{});
+   const units=[...new Set([preferred,...series.points.map(p=>p.loadUnit),...data.unassigned.filter(p=>p.key===series.key).map(p=>p.loadUnit)])];
+   if(view.configuredUnits[key]!==preferred){view.configuredUnits[key]=preferred;view.units[key]=preferred;}
+   let unit=units.includes(view.units[key])?view.units[key]:preferred;
+   function drawGraph(){
+    view.units[key]=unit;const start=Math.min(view.windows[key]??Math.max(0,data.weeks.length-12),Math.max(0,data.weeks.length-1));view.windows[key]=start;
+    const weeks=data.weeks.slice(start,start+12),points=series.points.filter(p=>p.loadUnit===unit&&weeks.includes(p.week));
+    card.querySelector('.graph-unit').textContent=unitLabel(unit);
+    card.querySelector('.chart-window span').textContent=weeks.length>1?`Weeks ${weeks[0]}–${weeks.at(-1)}`:`Week ${weeks[0]}`;
+    card.querySelector('[data-window="-1"]').disabled=start===0;card.querySelector('[data-window="1"]').disabled=start+12>=data.weeks.length;
+    // An equipment unit change never relabels or converts older recorded values.
+    card.querySelector('.graph-unit-options').innerHTML=units.length>1?`<label>Recorded unit<select aria-label="Recorded unit for ${esc(series.name)}">${units.map(u=>`<option value="${u}" ${u===unit?'selected':''}>${u==='unknown'?'Unknown':u}${u===preferred?' · Current':''}</option>`).join('')}</select></label>`:'';
+    const select=card.querySelector('select');if(select)select.onchange=()=>{unit=select.value;drawGraph();};
+    const maximum=Math.max(1,...points.map(p=>p.weight)),step=Math.max(10,Math.ceil(maximum/1000)*10),max=Math.ceil(maximum/step)*step;
+    const typeScale=Math.max(1,parseFloat(getComputedStyle(root).fontSize)/16);
+    const W=344,H=Math.max(218,max/step*16*typeScale+44*typeScale),left=Math.min(110,39*typeScale),right=330,top=14*typeScale,bottom=H-30*typeScale,plot=right-left;
+    const x=w=>weeks.length===1?(left+right)/2:left+weeks.indexOf(w)*plot/(weeks.length-1),y=v=>bottom-v/max*(bottom-top);
+    let axes='',line='',prior=null,markers='';
+    for(let value=0;value<=max;value+=step){const yy=y(value);axes+=`<path class="chart-grid" d="M${left} ${yy}H${right}"/><text class="axis-value" x="${left-7}" y="${yy+3}" text-anchor="end">${value}</text>`;}
+    points.forEach((p,i)=>{const xx=x(p.week),yy=y(p.weight);line+=(prior&&p.week===prior.week+1&&p.unit===prior.unit?'L':'M')+xx+' '+yy+' ';prior=p;
+     markers+=`<g class="chart-point" role="button" aria-pressed="false" tabindex="0" data-point="${i}" style="--point-delay:${Math.round((xx-left)/plot*520)}ms" aria-label="${esc(series.name)}, Week ${p.week}, ${esc(result(p))}${p.reps==null?'':', '+p.reps+' reps'}"><circle class="point-hit" cx="${xx}" cy="${yy}" r="24"/><circle class="point-dot" cx="${xx}" cy="${yy}" r="3"/></g>`;});
+    const ticks=weeks.filter((w,i)=>weeks.length<=6||i===0||i===weeks.length-1||i%Math.ceil(weeks.length/5)===0);
+    axes+=ticks.map(w=>`<text class="axis-value" x="${x(w)}" y="${H-7}" text-anchor="middle">${w}</text>`).join('');
+    card.querySelector('.chart-stage').innerHTML=`<svg class="weight-chart" viewBox="0 0 ${W} ${H}" aria-label="${esc(series.name)} working weight by training week${unitLabel(unit)?', '+unitLabel(unit):''}"><defs><clipPath id="graph-reveal-${n}"><rect class="chart-reveal" x="${left-5}" y="0" width="${plot+10}" height="${H}"/></clipPath></defs>${axes}<g class="chart-series" style="--series:#c1a2df"><g clip-path="url(#graph-reveal-${n})"><path class="chart-line" d="${line}"/></g>${markers}</g></svg>${points.length?'':'<div class="chart-empty">No recorded weights in these weeks</div>'}`;
+    function showPoint(point){
+     const detail=card.querySelector('.point-detail'),opacity=detail.getAnimations().length?Number(getComputedStyle(detail).opacity):.65;detail.getAnimations().forEach(a=>a.cancel());
+     detail.innerHTML=point?`<span class="detail-week">Week ${point.week}</span><strong>${esc(series.name)}</strong><span class="detail-value">${esc(result(point))}${point.reps==null?'':'<small>× '+point.reps+' reps</small>'}</span>`:'<span class="detail-placeholder">Tap a point to see your recorded result</span>';
+     card.querySelectorAll('[data-point]').forEach(el=>{const selected=points[Number(el.dataset.point)]===point;el.classList.toggle('is-selected',selected);el.setAttribute('aria-pressed',String(selected));});
+     if(point&&!reduced())detail.animate([{opacity},{opacity:1}],{duration:220});
+    }
+    card.querySelectorAll('[data-point]').forEach(el=>{const choose=()=>{const point=points[Number(el.dataset.point)];view.points[key]=point.weekId;showPoint(point);};el.onclick=choose;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choose();}};});
+    showPoint(points.find(p=>p.weekId===view.points[key]));
+    const earlier=data.unassigned.filter(p=>p.key===series.key&&p.loadUnit===unit);
+    card.querySelector('.earlier-records').innerHTML=earlier.length?`<details><summary>Earlier records · Week not recorded (${earlier.length})</summary>${earlier.map(p=>`<div class="earlier-row"><strong>${esc(result(p))}${p.reps==null?'':' · '+p.reps+' reps'}</strong>${p.date?'<span>'+esc(p.date.slice(0,10))+'</span>':''}</div>`).join('')}</details>`:'';
    }
-   groups+=`<g class="chart-series" data-series="${esc(s.key)}" style="--series:${s.colour}"><g clip-path="url(#reveal-0)"><path class="chart-line" d="${path}"/></g>${markers}</g>`;
+   card.querySelectorAll('[data-window]').forEach(b=>b.onclick=()=>{view.windows[key]=Math.max(0,(view.windows[key]??0)+Number(b.dataset.window)*12);drawGraph();});
+   drawGraph();
+  });
+  const positions=()=>cards.map(c=>c.offsetLeft-cards[0].offsetLeft);
+  function update(){
+   view.cardIndices[day]=index;cards.forEach((card,i)=>{card.classList.toggle('is-current',i===index);card.inert=i!==index;card.setAttribute('aria-hidden',String(i!==index));});
+   root.querySelector('.graph-position').textContent=cards.length?`${index+1} of ${cards.length}`:'No exercises';
+   root.querySelector('[data-graph-direction="-1"]').disabled=index===0;root.querySelector('[data-graph-direction="1"]').disabled=index>=cards.length-1;
   }
-  const ticks=weeks.filter((w,i)=>weeks.length<=6||i===0||i===weeks.length-1||i%Math.ceil(weeks.length/5)===0);
-  axes+=ticks.map(w=>`<text class="axis-value" x="${x(w)}" y="${H-7}" text-anchor="middle">${w}</text>`).join('');
-  chart.innerHTML=`<svg class="weight-chart" viewBox="0 0 ${W} ${H}" aria-label="Working weight by training week. Tap a point for the recorded result."><defs><clipPath id="reveal-0"><rect class="chart-reveal" x="${left-5}" y="0" width="${plot+10}" height="${H}"/></clipPath></defs>${axes}${groups}</svg>${!points.length?'<div class="chart-empty">No recorded weights in these weeks</div>':''}`;
-  root.querySelector('.exercise-filters').innerHTML=data.series.map(s=>`<div class="exercise-filter"><button type="button" data-series-toggle="${esc(s.key)}" aria-pressed="${!hidden.has(s.key)}"><i style="--series:${s.colour}"></i><span>${esc(s.name)}${s.current?'':'<small>Previous exercise</small>'}</span><svg aria-hidden="true" viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></svg></button><button type="button" class="only-exercise" data-series-only="${esc(s.key)}" aria-label="Show only ${esc(s.name)}">Only</button></div>`).join('');
-  root.querySelector('.earlier-records').innerHTML=data.unassigned.length?`<details><summary>Earlier records · Week not recorded (${data.unassigned.length})</summary><p>Kept separately because no training week was saved.</p>${data.unassigned.map(p=>`<div class="earlier-row"><strong>${esc(p.name)}</strong><span>${esc(valueText(p))}${p.reps==null?'':' · '+p.reps+' reps'}${p.date?' · '+esc(p.date.slice(0,10)):''}</span></div>`).join('')}</details>`:'';
-  chart.querySelectorAll('[data-point]').forEach(el=>{
-   const choose=()=>{selected=points[Number(el.dataset.point)];view.selected[view.day]=selected;focus=selected.key;update();};
-   el.onclick=choose;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choose();}};
-  });
-  root.querySelectorAll('[data-series-toggle]').forEach(b=>b.onclick=()=>{hidden.has(b.dataset.seriesToggle)?hidden.delete(b.dataset.seriesToggle):hidden.add(b.dataset.seriesToggle);update();});
-  root.querySelectorAll('[data-series-only]').forEach(b=>b.onclick=()=>{hidden=new Set(data.series.filter(s=>s.key!==b.dataset.seriesOnly).map(s=>s.key));focus=b.dataset.seriesOnly;update();});
-  update();
+  function move(direction){index=Math.max(0,Math.min(cards.length-1,index+direction));update();deck.scrollTo({left:positions()[index]||0,behavior:reduced()?'instant':'smooth'});}
+  deck.onscroll=()=>{if(!scrollFrame)scrollFrame=requestAnimationFrame(()=>{scrollFrame=0;const offsets=positions();let nearest=0;offsets.forEach((x,i)=>{if(Math.abs(x-deck.scrollLeft)<Math.abs(offsets[nearest]-deck.scrollLeft))nearest=i;});if(nearest!==index){index=nearest;update();}});};
+  deck.onkeydown=e=>{if(e.target===deck&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();move(e.key==='ArrowRight'?1:-1);}};
+  root.querySelectorAll('[data-graph-direction]').forEach(b=>b.onclick=()=>move(Number(b.dataset.graphDirection)));
+  update();deck.scrollTo({left:positions()[index]||0,behavior:'instant'});
+  const resize=new ResizeObserver(()=>deck.scrollTo({left:positions()[index]||0,behavior:'instant'}));resize.observe(deck);
+  disposeDeck=()=>{resize.disconnect();cancelAnimationFrame(scrollFrame);deck.onscroll=null;deck.onkeydown=null;};
  }
- function update(){
-  if(disposed)return;view.hidden[view.day]=[...hidden];
-  chart.querySelectorAll('[data-series]').forEach(g=>{
-   const hide=hidden.has(g.dataset.series);g.classList.toggle('is-hidden',hide);g.classList.toggle('is-muted',Boolean(!hide&&focus&&focus!==g.dataset.series&&!hidden.has(focus)));g.classList.toggle('is-focused',focus===g.dataset.series);
-   g.querySelectorAll('[data-point]').forEach(p=>{p.setAttribute('tabindex',hide?'-1':'0');p.setAttribute('aria-hidden',String(hide));p.classList.remove('is-selected');});
-  });
-  root.querySelectorAll('[data-series-toggle]').forEach(b=>b.setAttribute('aria-pressed',String(!hidden.has(b.dataset.seriesToggle))));
-  const label=selected?`<span class="detail-week">Week ${selected.week}</span><strong>${esc(selected.seriesName)}</strong><span class="detail-value">${esc(valueText(selected))}${selected.reps==null?'':' <small>× '+selected.reps+' reps</small>'}</span>`:'<span class="detail-placeholder">Tap a point to see your recorded result</span>';
-  if(detail.innerHTML!==label){detail.innerHTML=label;detail.getAnimations?.().forEach(a=>a.cancel());if(!matchMedia('(prefers-reduced-motion: reduce)').matches)detail.animate([{opacity:.4},{opacity:1}],{duration:220});}
-  if(selected){const g=[...chart.querySelectorAll('[data-series]')].find(g=>g.dataset.series===selected.key&&g.querySelector(`[aria-label*="Week ${selected.week},"]`));g?.querySelector(`[aria-label*="Week ${selected.week},"]`)?.classList.add('is-selected');}
- }
- root.querySelectorAll('[data-report-day]').forEach(b=>b.onclick=()=>{if(view.day===b.dataset.reportDay)return;view.day=b.dataset.reportDay;root.querySelectorAll('[data-report-day]').forEach(t=>t.setAttribute('aria-pressed',String(t===b)));draw();});
- root.querySelectorAll('[data-filter-all]').forEach(b=>b.onclick=()=>{hidden=b.dataset.filterAll==='true'?new Set():new Set(data.series.map(s=>s.key));focus=null;update();});
- root.querySelectorAll('[data-window]').forEach(b=>b.onclick=()=>{view.windows[view.day]=Math.max(0,(view.windows[view.day]??0)+Number(b.dataset.window)*12);draw();});
- draw();
- return ()=>{disposed=true;};
+ root.querySelectorAll('[data-report-day]').forEach(b=>b.onclick=()=>{if(view.day===b.dataset.reportDay)return;view.day=b.dataset.reportDay;root.querySelectorAll('[data-report-day]').forEach(t=>t.setAttribute('aria-pressed',String(t===b)));drawDay();});
+ drawDay();return()=>disposeDeck();
 }

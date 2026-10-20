@@ -19,3 +19,20 @@ const icons={
 export function footer(page){
  return `<nav class="app-footer" aria-label="Main navigation">${[['home','Home'],['progress','Progress'],['history','History'],['backup','Settings']].map(([route,label])=>`<button type="button" data-route="${route}" ${route===page?'aria-current="page"':''}>${svg(icons[route])}<span>${label}</span></button>`).join('')}</nav>`;
 }
+
+// iOS Home Screen windows can retain a layout viewport taller than the visible viewport.
+// These dimensions affect the dashboard shell only, never the exercise deck or plate floor.
+export function installDashboardViewport(){
+ let frame=0;
+ const sync=()=>{
+  frame=0;const viewport=window.visualViewport;
+  if(viewport&&Math.abs(viewport.scale-1)>.01)return; // Preserve native pinch zoom.
+  const height=Math.min(window.innerHeight,viewport?.height||window.innerHeight);
+  document.documentElement.style.setProperty('--shell-viewport-height',height+'px');
+  document.documentElement.style.setProperty('--shell-viewport-top',(viewport?.offsetTop||0)+'px');
+ };
+ const schedule=()=>{if(!frame)frame=requestAnimationFrame(sync);};
+ sync();window.addEventListener('resize',schedule);window.addEventListener('pageshow',schedule);
+ window.visualViewport?.addEventListener('resize',schedule);window.visualViewport?.addEventListener('scroll',schedule);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)schedule();});
+}
