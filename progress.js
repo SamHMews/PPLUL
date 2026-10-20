@@ -2,8 +2,7 @@ import {ROUTINES,loadUnit} from './model.js';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const colours=['#c1a2df','#71c6ba','#e2b778','#83b7ec','#df92ae','#b7c67c','#c6b6a7','#a5a4f3','#e69b79','#7ec2d7','#d5a9bd','#a3c6a8'];
 const keyOf=e=>JSON.stringify([e.id,e.variant||'']);
-const unitName=u=>u==='unknown'?'Unknown unit':u;
-const valueText=p=>(p.precision==='estimated'?'≈ ':'')+p.weight+(p.loadUnit==='unknown'?'':' '+p.loadUnit);
+const valueText=p=>(p.precision==='estimated'?'≈ ':'')+p.weight;
 
 // Read-only projection. No inferred weeks, interpolated values, suggested weights or draft results.
 export function progressData(state,day){
@@ -51,35 +50,29 @@ export function mountProgress(root,state,view){
   root.querySelector('[data-window="-1"]').disabled=start===0;
   root.querySelector('[data-window="1"]').disabled=start+12>=total;
   root.querySelector('#chart-period').textContent=weeks.length>1?`Weeks ${weeks[0]}–${weeks.at(-1)}`:`Week ${weeks[0]}`;
-  const units=[...new Set(data.series.flatMap(s=>s.points.map(p=>p.loadUnit)))];if(!units.length)units.push('kg');
-  units.sort((a,b)=>['kg','lb','unknown'].indexOf(a)-['kg','lb','unknown'].indexOf(b));
-  const W=344,H=Math.max(236,units.length*112+38),left=39,right=330,plot=right-left,band=(H-36)/units.length;
+  // One numeric scale; stored units and recorded amounts are never converted or changed.
+  const W=344,H=218,left=39,right=330,plot=right-left,top=14,bottom=H-30;
   const x=w=>weeks.length===1?(left+right)/2:left+weeks.indexOf(w)*plot/(weeks.length-1);
+  const values=data.series.flatMap(s=>s.points.filter(p=>weeks.includes(p.week)).map(p=>p.weight));
+  const maximum=Math.max(1,...values),step=Math.pow(10,Math.floor(Math.log10(maximum)))/2,max=Math.ceil(maximum/step)*step;
+  const y=value=>bottom-value/max*(bottom-top);
   let axes='',groups='',points=[];
-  for(const [index,unit] of units.entries()){
-   const top=index*band+23,bottom=(index+1)*band-11;
-   const values=data.series.flatMap(s=>s.points.filter(p=>p.loadUnit===unit&&weeks.includes(p.week)).map(p=>p.weight));
-   const maximum=Math.max(1,...values),step=Math.pow(10,Math.floor(Math.log10(maximum)))/2,max=Math.ceil(maximum/step)*step;
-   const y=value=>bottom-value/max*(bottom-top);
-   axes+=`<text class="axis-unit" x="${left}" y="${top-10}">${unitName(unit)}</text>`;
-   for(const value of [0,max/2,max]){const yy=y(value);axes+=`<path class="chart-grid" d="M${left} ${yy}H${right}"/><text class="axis-value" x="${left-7}" y="${yy+3}" text-anchor="end">${Number(value.toFixed(2))}</text>`;}
-   for(const s of data.series){
-    let path='',prior=null,markers='';
-    for(const p of s.points.filter(p=>p.loadUnit===unit&&weeks.includes(p.week))){
-     const xx=x(p.week),yy=y(p.weight);
-     // Unit/type changes and missing training weeks break the line, rather than implying a result.
-     path+=(prior&&p.week===prior.week+1&&p.unit===prior.unit?'L':'M')+xx+' '+yy+' ';
-     const point={...p,key:s.key,seriesName:s.name,colour:s.colour};const n=points.push(point)-1;
-     markers+=`<g class="chart-point" role="button" tabindex="0" data-point="${n}" style="--point-delay:${Math.round((xx-left)/plot*duration)}ms" aria-label="${esc(s.name)}, Week ${p.week}, ${esc(valueText(p))}${p.reps==null?'':', '+p.reps+' reps'}"><circle class="point-hit" cx="${xx}" cy="${yy}" r="12"/><circle class="point-dot" cx="${xx}" cy="${yy}" r="3"/></g>`;
-     prior=p;
-    }
-    groups+=`<g class="chart-series" data-series="${esc(s.key)}" style="--series:${s.colour}"><g clip-path="url(#reveal-${index})"><path class="chart-line" d="${path}"/></g>${markers}</g>`;
+  for(const value of [0,max/2,max]){const yy=y(value);axes+=`<path class="chart-grid" d="M${left} ${yy}H${right}"/><text class="axis-value" x="${left-7}" y="${yy+3}" text-anchor="end">${Number(value.toFixed(2))}</text>`;}
+  for(const s of data.series){
+   let path='',prior=null,markers='';
+   for(const p of s.points.filter(p=>weeks.includes(p.week))){
+    const xx=x(p.week),yy=y(p.weight);
+    // Missing weeks and equipment/unit changes break the line rather than implying progression.
+    path+=(prior&&p.week===prior.week+1&&p.unit===prior.unit&&p.loadUnit===prior.loadUnit?'L':'M')+xx+' '+yy+' ';
+    const point={...p,key:s.key,seriesName:s.name,colour:s.colour};const n=points.push(point)-1;
+    markers+=`<g class="chart-point" role="button" tabindex="0" data-point="${n}" style="--point-delay:${Math.round((xx-left)/plot*duration)}ms" aria-label="${esc(s.name)}, Week ${p.week}, ${esc(valueText(p))}${p.reps==null?'':', '+p.reps+' reps'}"><circle class="point-hit" cx="${xx}" cy="${yy}" r="12"/><circle class="point-dot" cx="${xx}" cy="${yy}" r="3"/></g>`;
+    prior=p;
    }
+   groups+=`<g class="chart-series" data-series="${esc(s.key)}" style="--series:${s.colour}"><g clip-path="url(#reveal-0)"><path class="chart-line" d="${path}"/></g>${markers}</g>`;
   }
   const ticks=weeks.filter((w,i)=>weeks.length<=6||i===0||i===weeks.length-1||i%Math.ceil(weeks.length/5)===0);
   axes+=ticks.map(w=>`<text class="axis-value" x="${x(w)}" y="${H-7}" text-anchor="middle">${w}</text>`).join('');
-  chart.innerHTML=`<svg class="weight-chart" viewBox="0 0 ${W} ${H}" aria-label="Working weight by training week. Tap a point for the recorded result."><defs>${units.map((u,i)=>`<clipPath id="reveal-${i}"><rect class="chart-reveal" x="${left-5}" y="0" width="${plot+10}" height="${H}"/></clipPath>`).join('')}</defs>${axes}${groups}</svg>${!points.length?'<div class="chart-empty">No recorded weights in these weeks</div>':''}`;
-  if(units.length>1)chart.insertAdjacentHTML('beforeend','<p class="unit-note">Separate scales for each unit · No conversion</p>');
+  chart.innerHTML=`<svg class="weight-chart" viewBox="0 0 ${W} ${H}" aria-label="Working weight by training week. Tap a point for the recorded result."><defs><clipPath id="reveal-0"><rect class="chart-reveal" x="${left-5}" y="0" width="${plot+10}" height="${H}"/></clipPath></defs>${axes}${groups}</svg>${!points.length?'<div class="chart-empty">No recorded weights in these weeks</div>':''}`;
   root.querySelector('.exercise-filters').innerHTML=data.series.map(s=>`<div class="exercise-filter"><button type="button" data-series-toggle="${esc(s.key)}" aria-pressed="${!hidden.has(s.key)}"><i style="--series:${s.colour}"></i><span>${esc(s.name)}${s.current?'':'<small>Previous exercise</small>'}</span><svg aria-hidden="true" viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></svg></button><button type="button" class="only-exercise" data-series-only="${esc(s.key)}" aria-label="Show only ${esc(s.name)}">Only</button></div>`).join('');
   root.querySelector('.earlier-records').innerHTML=data.unassigned.length?`<details><summary>Earlier records · Week not recorded (${data.unassigned.length})</summary><p>Kept separately because no training week was saved.</p>${data.unassigned.map(p=>`<div class="earlier-row"><strong>${esc(p.name)}</strong><span>${esc(valueText(p))}${p.reps==null?'':' · '+p.reps+' reps'}${p.date?' · '+esc(p.date.slice(0,10)):''}</span></div>`).join('')}</details>`:'';
   chart.querySelectorAll('[data-point]').forEach(el=>{
@@ -97,7 +90,7 @@ export function mountProgress(root,state,view){
    g.querySelectorAll('[data-point]').forEach(p=>{p.setAttribute('tabindex',hide?'-1':'0');p.setAttribute('aria-hidden',String(hide));p.classList.remove('is-selected');});
   });
   root.querySelectorAll('[data-series-toggle]').forEach(b=>b.setAttribute('aria-pressed',String(!hidden.has(b.dataset.seriesToggle))));
-  const label=selected?`<span class="detail-week">Week ${selected.week}</span><strong>${esc(selected.seriesName)}</strong><span class="detail-value">${esc(valueText(selected))}${selected.reps==null?'':' <small>× '+selected.reps+' reps</small>'}</span><span class="detail-type">${esc(selected.unit?selected.unit.replace(/^./,c=>c.toUpperCase()):'')}${selected.loadUnit==='unknown'?' · Unit not specified':''}</span>`:'<span class="detail-placeholder">Tap a point to see your recorded result</span>';
+  const label=selected?`<span class="detail-week">Week ${selected.week}</span><strong>${esc(selected.seriesName)}</strong><span class="detail-value">${esc(valueText(selected))}${selected.reps==null?'':' <small>× '+selected.reps+' reps</small>'}</span>`:'<span class="detail-placeholder">Tap a point to see your recorded result</span>';
   if(detail.innerHTML!==label){detail.innerHTML=label;detail.getAnimations?.().forEach(a=>a.cancel());if(!matchMedia('(prefers-reduced-motion: reduce)').matches)detail.animate([{opacity:.4},{opacity:1}],{duration:220});}
   if(selected){const g=[...chart.querySelectorAll('[data-series]')].find(g=>g.dataset.series===selected.key&&g.querySelector(`[aria-label*="Week ${selected.week},"]`));g?.querySelector(`[aria-label*="Week ${selected.week},"]`)?.classList.add('is-selected');}
  }

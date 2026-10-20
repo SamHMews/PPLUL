@@ -14,7 +14,7 @@ const icons={
  home:'<path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9"/>',
  progress:'<path d="M4 4v16h16M7 15l4-5 4 2 5-7"/>',
  history:'<path d="M3 4v5h5M3 9a9 9 0 1 1 1 9M12 7v5l3 2"/>',
- backup:'<circle cx="12" cy="12" r="3"/><path d="m9 3-1 3-3 1-2 3 2 2-1 3 3 2 2 3h4l1-3 3-1 2-3-2-2 1-3-3-2-2-3Z"/>'
+ backup:'<path d="M4 7h3m4 0h9M4 17h9m4 0h3"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/>'
 };
 export function footer(page){
  return `<nav class="app-footer" aria-label="Main navigation">${[['home','Home'],['progress','Progress'],['history','History'],['backup','Settings']].map(([route,label])=>`<button type="button" data-route="${route}" ${route===page?'aria-current="page"':''}>${svg(icons[route])}<span>${label}</span></button>`).join('')}</nav>`;
