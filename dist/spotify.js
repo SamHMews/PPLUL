@@ -22,7 +22,7 @@ export function createSpotify({notify=()=>{}}={}){
    // A fetch resolves at headers; reading the body can still stall indefinitely.
    // Keep timeout/background cancellation active through the entire response.
    const complete=fetch(url,{...options,cache:'no-store',referrerPolicy:'no-referrer',signal:controller.signal}).then(async response=>{
-    const body=await response.text();
+    const body=response.status===204?'':await response.text();
     return {ok:response.ok,status:response.status,headers:response.headers,json:async()=>JSON.parse(body)};
    });
    return await Promise.race([complete,interrupted]);
@@ -64,7 +64,8 @@ export function createSpotify({notify=()=>{}}={}){
   notify('Spotify connected. Drag up to pause or play, or down for the next song.');return true;
  }
  async function playback(action){
-  if(busy)throw new Error('Spotify is still handling the previous command. Try again in a moment.');
+  // A second gesture never queues an extra skip while a command is in flight.
+  if(busy)return;
   if(Date.now()<blockedUntil)throw new Error('Spotify needs a moment. Try again in '+Math.ceil((blockedUntil-Date.now())/1000)+' seconds.');
   busy=true;const epoch=generation;
   const check=()=>{if(epoch!==generation){const e=new Error('Spotify control interrupted. Try again.');e.name='AbortError';throw e;}};
@@ -73,48 +74,66 @@ export function createSpotify({notify=()=>{}}={}){
    async function api(path,method){
     check();const send=()=>request('https://api.spotify.com/v1/me/player'+path,{method,headers:{Authorization:'Bearer '+token}});
     let r,retried=false;
-    // Reads are safe to retry once. A playback command might already have run.
     try{r=await send();}catch(error){check();if(method!=='GET'||error.name==='AbortError'||navigator.onLine===false)throw error;retried=true;r=await send();}
     check();if(method==='GET'&&!retried&&r.status>=500){r=await send();check();}
     if(r.status===401){token=await accessToken(true);check();r=await send();check();}
     if(r.ok)return r;
-    if(r.status===404){const error=new Error('Spotify is not available to remote controls. Open Spotify once on your phone, then try again.');error.status=404;throw error;}
-    if(r.status===403&&method==='GET'){const e=new Error('Reconnect Spotify once to enable pause and play.');e.reconnect=true;throw e;}
-    if(r.status===403)throw new Error('Spotify cannot control this playback. Check Premium and your active device.');
-    if(r.status===401){localStorage.removeItem(AUTH_KEY);throw new Error('Please reconnect Spotify in Backup & settings.');}
-    if(r.status===429){const seconds=Math.max(1,Number(r.headers.get('Retry-After'))||30);blockedUntil=Date.now()+seconds*1000;throw new Error('Spotify is busy. Try again in '+seconds+' seconds.');}
-    throw new Error('Spotify could not confirm the command. Check your music before trying again.');
+    let reason='';try{reason=(await r.json()).error?.reason||'';}catch{}
+    const error=new Error('Spotify could not confirm the command. Check your music before trying again.');error.status=r.status;error.reason=reason;
+    if(r.status===404)error.message='Spotify has no reachable playback device. Start playback in Spotify once, then try again.';
+    if(r.status===403&&method==='GET'){error.message='Reconnect Spotify once to enable playback control.';error.reconnect=true;}
+    else if(r.status===403)error.message='Spotify cannot control this playback. Check Premium and your active device.';
+    if(r.status===401){localStorage.removeItem(AUTH_KEY);error.message='Please reconnect Spotify in Backup & settings.';}
+    if(r.status===429){const seconds=Math.max(1,Number(r.headers.get('Retry-After'))||30);blockedUntil=Date.now()+seconds*1000;error.message='Spotify is busy. Try again in '+seconds+' seconds.';}
+    throw error;
    }
-   async function discoverDevice(){
-    const response=await api('/devices','GET');const data=await response.json();check();
-    const devices=(data.devices||[]).filter(d=>d.id&&!d.is_restricted),remembered=read(AUTH_KEY)?.last_device_id;
-    const phones=devices.filter(d=>d.type?.toLowerCase()==='smartphone');
-    const target=devices.find(d=>d.is_active)||devices.find(d=>d.id===remembered)||(phones.length===1?phones[0]:devices.length===1?devices[0]:null);
-    if(devices.length&&!target)throw new Error('Several Spotify devices are available. Choose your phone in Spotify once.');
-    return target?.id||null;
+   async function current(){try{const r=await api('','GET');return r.status===204?null:await r.json();}catch(e){if(e.status===404)return null;throw e;}}
+   async function devices(){const r=await api('/devices','GET');const data=await r.json();check();return (data.devices||[]).filter(d=>d.id&&!d.is_restricted);}
+   function choose(list){
+    const remembered=read(AUTH_KEY)?.last_device_id,phones=list.filter(d=>d.type?.toLowerCase()==='smartphone');
+    // Reuse a remembered ID only when a fresh device list still contains it.
+    return list.find(d=>d.is_active)||list.find(d=>d.id===remembered)||(phones.length===1?phones[0]:list.length===1?list[0]:null);
    }
-   let deviceId=null;
-   if(action==='toggle'){
-    let r;try{r=await api('','GET');}catch(error){if(error.status!==404)throw error;}
-    const state=!r||r.status===204?null:await r.json();check();
-    if(state?.device?.is_restricted)throw new Error('Spotify does not allow remote control of this device.');
-    if(state?.device?.id){deviceId=state.device.id;action=state.is_playing?'pause':'play';}
-    else{deviceId=await discoverDevice();action='play';}
+   let before=null;
+   try{before=await current();}catch(e){
+    // Temporary discovery failure need not block a skip to the default active player.
+    if(action==='toggle'||[401,403,429].includes(e.status)||e.name==='AbortError'||navigator.onLine===false)throw e;
    }
-   // With no listed device, still let Spotify try its default active player once.
-   // Never retry ambiguous command failures or replay a skip automatically.
-   const sendCommand=()=>api('/'+action+(deviceId?'?device_id='+encodeURIComponent(deviceId):''),action==='next'?'POST':'PUT');
-   try{await sendCommand();}catch(error){
-    // A definite 404 means Spotify rejected the command. Refresh a stale target
-    // once, preserving the original action rather than toggling it again.
-    if(error.status!==404)throw error;
-    const refreshed=await discoverDevice();
-    if(!refreshed||refreshed===deviceId)throw error;
-    deviceId=refreshed;await sendCommand();
+   check();
+   if(before?.device?.is_restricted)throw new Error('Spotify does not allow remote control of this device.');
+   let deviceId=before?.device?.id||null;
+   if(action==='toggle')action=before?.is_playing?'pause':'play';
+   if(!deviceId){try{deviceId=choose(await devices())?.id||null;}catch(e){if([401,403,429].includes(e.status)||e.name==='AbortError')throw e;}}
+   const itemId=s=>s?.item?.uri||s?.item?.id;
+   const achieved=after=>{
+    if(!after)return false;
+    if(action==='play')return after.is_playing===true;
+    if(action==='pause')return after.is_playing===false&&Boolean(after.device);
+    if(itemId(before)&&itemId(after)&&itemId(before)!==itemId(after))return true;
+    return action==='previous'&&itemId(before)&&itemId(before)===itemId(after)&&before.progress_ms>2000&&after.progress_ms<1000;
+   };
+   const send=()=>api('/'+action+(deviceId?'?device_id='+encodeURIComponent(deviceId):''),['next','previous'].includes(action)?'POST':'PUT');
+   async function verify(){try{const after=await current();check();return after;}catch(e){check();if(e.name==='AbortError')throw e;return null;}}
+   try{await send();}catch(error){
+    check();if(error.name==='AbortError'||[400,401,403,429].includes(error.status)||navigator.onLine===false)throw error;
+    // Successful 204 responses never reach discovery or verification.
+    let after=await verify();if(achieved(after))return action;
+    if(error.status!==404){
+     // Ambiguous network/5xx failures may follow a successful skip. Verify, never repeat it.
+     await new Promise(resolve=>setTimeout(resolve,220));check();after=await verify();if(achieved(after))return action;throw error;
+    }
+    // Explicit rejection: refresh the route once, preserving the original action.
+    let refreshed=after?.device&&!after.device.is_restricted?after.device.id:null;
+    if(!refreshed||refreshed===deviceId){try{refreshed=choose(await devices())?.id||null;}catch(e){if(e.name==='AbortError'||[401,403,429].includes(e.status))throw e;}}
+    if(refreshed===deviceId||!refreshed&&!deviceId)throw error;
+    deviceId=refreshed;
+    try{await send();}catch(retryError){check();if(retryError.name==='AbortError'||[400,401,403,429].includes(retryError.status))throw retryError;if(achieved(await verify()))return action;throw retryError;}
    }
+   check();
    if(deviceId){const auth=read(AUTH_KEY);if(auth){auth.last_device_id=deviceId;localStorage.setItem(AUTH_KEY,JSON.stringify(auth));}}
    return action;
   }finally{if(epoch===generation)busy=false;}
  }
- return {connected,connect,disconnect,finishLogin,cancelPending,next:()=>playback('next'),toggle:()=>playback('toggle')};
+
+ return {connected,connect,disconnect,finishLogin,cancelPending,next:()=>playback('next'),previous:()=>playback('previous'),toggle:()=>playback('toggle')};
 }

@@ -69,7 +69,7 @@ export function validateState(s){
  }
  for(const e of s.seed)if(!e||!DAYS.includes(e.day)||!str(e.id)||!(e.weight===null||number(e.weight))||!reps(e.reps)||!str(e.unit)||!measure(e)||!['exact','estimated'].includes(e.precision)||!(e.date==null||str(e.date)))fail();
  for(const [key,v] of Object.entries(s.settings))if(!str(key)||!DAYS.some(d=>key.startsWith(d+':'))||!v||!str(v.unit)||!number(v.increment)||v.increment<=0||!measure(v)||Object.keys(v).some(k=>!['unit','increment','loadUnit'].includes(k)))fail();
- if(!s.view||!['home','day','history','backup','review','cardio'].includes(s.view.page)||!(s.view.day===null||DAYS.includes(s.view.day)))fail();
+ if(!s.view||!['home','day','history','backup','review','cardio','progress'].includes(s.view.page)||!(s.view.day===null||DAYS.includes(s.view.day)))fail();
  return s;
 }
 export function migrateState(input){
