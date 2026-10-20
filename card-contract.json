@@ -1,0 +1,40 @@
+{
+  "sections": [
+    {
+      "start": "function cardMarkup(",
+      "end": "function dayView(",
+      "sha": "19696345b90b9d471dd1b7dd6f727120779ef67f8b92be279107d0ce4c86ac75"
+    },
+    {
+      "start": "function repsMarkup(",
+      "end": "function spotifyControls(",
+      "sha": "a743723aba362f606ad098efb494c34149fed1e3843bd5b46391c2d7a271e23f"
+    },
+    {
+      "start": "function spotifyControls(",
+      "end": "function cardioHistory(",
+      "sha": "f7d83ff651fbadfd65e19d121b14497629cd02fe6dc3a3090e76b7cdf1185e3a"
+    },
+    {
+      "start": "function bindCard(",
+      "end": "async function init(",
+      "sha": "7f0883e97d7cf3baec919e9ad9205815406ce88c29d35ce624e125a2e2718268"
+    },
+    {
+      "start": "function updateCardCompletion(",
+      "end": "function bindCard(",
+      "sha": "79dbf1f03f8c1fe44a9cb5d5440040b1907b88c701dae26ac06f68927a9c686f"
+    }
+  ],
+  "files": {
+    "style.css": "5ead65951404e3f925bffb380c73c88e07a8a1ec714feed34792e6286c1a8483",
+    "mobile.css": "81cf95df756807dd905b60f8c5b255f19f77084634b80eab9267620305e3f329",
+    "stack.css": "9df5b8bdedb966de381ccae4c354bb4fcf23461992a90954bb3244ba121ac818",
+    "feedback.css": "d5d9159d0eae5ea6cc61da51d92841b723abc1552e956dbf18db2cd0e026a994",
+    "celebration.js": "f8b96f50a9f89e85c88506f650fe075dfa3de7856a673148849be24a7806fb27",
+    "gestures.js": "c70aa3feefa9cc0d99c96b9604c67eb367ee2ab606545c22816a367f6a892636",
+    "reps.js": "3789f44f349cc1a45dcb1f71ec6f8c54fa1b95b83f7bb8e86b93c3e869da0f40",
+    "music-switch.js": "5f5d050be88263399d05dde4e7ad2cc92e63f09213ad24ef7b077c54ed2a8bc2",
+    "storage.js": "45096519813c48f80c3b467bfbb14e4048915626412f8817b489a4fa4cda6d9b"
+  }
+}
