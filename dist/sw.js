@@ -1,4 +1,4 @@
-const CACHE='training-v41';
+const CACHE='training-v42';
 const ASSETS=['./','./index.html','./style.css','./mobile.css','./gestures.js','./reps.js','./feedback.css','./stack.css','./dashboard.css','./dashboard.js','./progress.js','./app.js','./spotify.js','./music-switch.js','./celebration.js','./weight-plate.png','./github-sync.js','./model.js','./storage.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 let legacyUpdateClient=null;
 self.addEventListener('install',event=>event.waitUntil((async()=>{
