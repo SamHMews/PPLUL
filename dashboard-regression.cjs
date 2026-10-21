@@ -30,6 +30,7 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   const c=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:1,serviceWorkers:'block'});
   await c.addInitScript(()=>{navigator.serviceWorker.register=()=>new Promise(()=>{});const match=window.matchMedia.bind(window);window.matchMedia=q=>q==='(display-mode: standalone)'?{matches:true,media:q,addListener(){},removeListener(){},addEventListener(){},removeEventListener(){}}:match(q);});
   const p=await c.newPage(),errors=[];p.on('pageerror',e=>errors.push(e.message));
+  async function resizeViewport(size){await p.setViewportSize(size);await p.waitForFunction(height=>Math.abs(parseFloat(document.documentElement.style.getPropertyValue('--shell-viewport-height'))-height)<1,size.height);}
   await p.goto('http://127.0.0.1:'+server.address().port);await p.locator('.app-footer').waitFor();
   assert.equal(await p.locator('.home-grid .tile').count(),6);assert.equal(await p.locator('.week-segments span').count(),5);
   assert(await p.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1));
@@ -48,9 +49,9 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   await p.evaluate(()=>{Object.defineProperty(visualViewport,'height',{configurable:true,value:724});visualViewport.dispatchEvent(new Event('resize'));});
   await p.waitForTimeout(80);
   assert(await p.locator('.app-footer').evaluate(e=>Math.abs(e.getBoundingClientRect().bottom-844)<1),'A shortened iOS visualViewport must not create a bottom strip in standalone mode');
-  await p.setViewportSize({width:390,height:724});
+  await resizeViewport({width:390,height:724});
   await p.waitForFunction(()=>Math.abs(document.querySelector('.app-footer').getBoundingClientRect().bottom-724)<1);
-  await p.setViewportSize({width:390,height:844});
+  await resizeViewport({width:390,height:844});
   assert(await p.locator('#app').evaluate(e=>e.getBoundingClientRect().bottom<=document.querySelector('.app-footer').getBoundingClientRect().top),'Content and navigation fit a shorter visible viewport');
   await p.evaluate(()=>{delete visualViewport.height;visualViewport.dispatchEvent(new Event('resize'));});
   await p.waitForFunction(()=>Math.abs(document.querySelector('.app-footer').getBoundingClientRect().bottom-innerHeight)<1);
@@ -58,7 +59,7 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   fs.mkdirSync('test-artifacts' ,{recursive:true});await p.evaluate(async()=>{await Promise.all(document.getAnimations().map(a=>a.finished.catch(()=>{})));scrollTo(0,0);});await p.screenshot({path:'test-artifacts/dashboard-home.png'});
   await p.locator('[data-action=cardio]').click();await p.locator('#cardio-type').selectOption('Boxing');await p.locator('#cardio-heart').fill('145');await p.locator('#cardio-heart').blur();await p.locator('[data-action=cardio-done]').click();await p.locator('.cardio-card.is-complete').waitFor();await p.locator('[data-action=home]').click();
   await p.locator('.tile[data-action=cardio].complete').waitFor();assert.equal(await p.locator('.week-segments .complete').count(),0,'Optional Cardio never counts as a main day');
-  await p.setViewportSize({width:390,height:763});await p.waitForFunction(()=>Math.abs(document.querySelector('.app-footer').getBoundingClientRect().bottom-763)<1);assert(await p.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1),'Dashboard fits after reserving iPhone safe areas');await p.setViewportSize({width:390,height:844});
+  await resizeViewport({width:390,height:763});await p.waitForFunction(()=>Math.abs(document.querySelector('.app-footer').getBoundingClientRect().bottom-763)<1);assert(await p.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1),'Dashboard fits after reserving iPhone safe areas');await resizeViewport({width:390,height:844});
   await p.locator('[data-day=Legs]').click();await p.locator('#overview-toggle').click();
   const listBox=await p.locator('.day-exercise-list').boundingBox(),ctaBox=await p.locator('.continue-workout').boundingBox();
   assert(ctaBox.y-listBox.y-listBox.height<=16,'Continue stays directly beneath the exercise list');
@@ -72,7 +73,7 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   assert(await p.locator('#app').evaluate(e=>e.scrollHeight<=e.clientHeight+1),'Eight rows and CTA fit within safe areas');
   assert.equal(await p.locator('.overview-row').filter({hasText:/sets|reps/i}).count(),0);
   assert(await p.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1));await p.evaluate(async()=>{await Promise.all(document.getAnimations().map(a=>a.finished.catch(()=>{})));scrollTo(0,0);});await p.screenshot({path:'test-artifacts/dashboard-day.png'});
-  await p.setViewportSize({width:375,height:667});assert(await p.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1),'Eight rows fit compact portrait too');
+  await resizeViewport({width:375,height:667});assert(await p.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1),'Eight rows fit compact portrait too');
   await p.locator('.overview-row').nth(3).click();assert.equal(await p.locator('.is-front').getAttribute('data-entry'),'face-pull');
   await p.locator('.is-front [data-action=equipment]').click();await p.locator('#increment').selectOption('5');await p.locator('#save-equipment').click();await p.locator('dialog').waitFor({state:'hidden'});await p.locator('.is-front [data-action=plus]').click();
   await p.waitForFunction(()=>document.querySelector('.is-front .weight-value span')?.textContent.trim()!=='—');const range=p.locator('.is-front input[type=range]');await range.focus();await p.keyboard.press('End');await p.waitForTimeout(50);assert.equal(await range.inputValue(),'9');
@@ -82,7 +83,7 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   await p.reload();await p.locator('.is-front.is-complete').waitFor();assert.equal(await p.locator('.is-front output').innerText(),'9');assert.notEqual(await p.locator('.is-front .weight-value span').innerText(),'—');assert.equal(await p.locator('.app-footer').count(),0);
   await p.locator('[data-action=home]').click();await p.locator('[data-route=progress]').click();await p.locator('.weight-chart').first().waitFor();
   await p.evaluate(async fixture=>{const db=await import('./storage.js'),existing=await db.readState();fixture.revision=existing.revision+1;fixture.view={page:'progress',day:null};await db.persist(fixture,existing.revision);},s);
-  await p.setViewportSize({width:390,height:844});await p.reload();await p.locator('.weight-chart').first().waitFor();
+  await resizeViewport({width:390,height:844});await p.reload();await p.locator('.weight-chart').first().waitFor();
   await p.addStyleTag({content:':root{--shell-safe-top:47px;--shell-safe-bottom:34px}'});
   const current=p.locator('.graph-card.is-current');
   assert.equal(await p.locator('.exercise-filters').count(),0,'No exercise list below graph cards');
