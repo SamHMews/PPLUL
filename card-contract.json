@@ -8,7 +8,7 @@
     {
       "start": "function repsMarkup(",
       "end": "function spotifyControls(",
-      "sha": "a743723aba362f606ad098efb494c34149fed1e3843bd5b46391c2d7a271e23f"
+      "sha": "d54c47b7c2c6afd57815db2a94285286e2ce2a84041cea7411b6a890e74ed550"
     },
     {
       "start": "function spotifyControls(",
@@ -18,12 +18,12 @@
     {
       "start": "function bindCard(",
       "end": "async function init(",
-      "sha": "7f0883e97d7cf3baec919e9ad9205815406ce88c29d35ce624e125a2e2718268"
+      "sha": "51339f469ec9c96342814584cc61ab8de376fc96fd8982deb6af2b619662f2e7"
     },
     {
       "start": "function updateCardCompletion(",
       "end": "function bindCard(",
-      "sha": "79dbf1f03f8c1fe44a9cb5d5440040b1907b88c701dae26ac06f68927a9c686f"
+      "sha": "449f0a3630bf31f6773ce2f6df0e3056ad3a2eec75652a30a3f49f90d386c18e"
     }
   ],
   "files": {
@@ -31,9 +31,9 @@
     "mobile.css": "81cf95df756807dd905b60f8c5b255f19f77084634b80eab9267620305e3f329",
     "stack.css": "9df5b8bdedb966de381ccae4c354bb4fcf23461992a90954bb3244ba121ac818",
     "feedback.css": "d5d9159d0eae5ea6cc61da51d92841b723abc1552e956dbf18db2cd0e026a994",
-    "celebration.js": "f8b96f50a9f89e85c88506f650fe075dfa3de7856a673148849be24a7806fb27",
+    "celebration.js": "5c66e0bba8869ba09fa76669a7a12af63d94142b3d656491eb95837bf0641853",
     "gestures.js": "c70aa3feefa9cc0d99c96b9604c67eb367ee2ab606545c22816a367f6a892636",
-    "reps.js": "3789f44f349cc1a45dcb1f71ec6f8c54fa1b95b83f7bb8e86b93c3e869da0f40",
+    "reps.js": "98140466b49e9263f8013c1ccfd58930b223be1753e955de439708ecf3ecd2d8",
     "music-switch.js": "5f5d050be88263399d05dde4e7ad2cc92e63f09213ad24ef7b077c54ed2a8bc2",
     "storage.js": "45096519813c48f80c3b467bfbb14e4048915626412f8817b489a4fa4cda6d9b"
   }

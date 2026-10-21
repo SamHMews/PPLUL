@@ -48,5 +48,7 @@ export function attachRepSlider(input, save) {
   });
   input.addEventListener('pointercancel',()=>{pointer=null;});
   input.addEventListener('lostpointercapture',()=>{pointer=null;});
+  // Explicit keyboard selection of the current/minimum value must also be saved.
+  input.addEventListener('keyup',ev=>{if(!input.disabled&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown'].includes(ev.key)){output.textContent=input.value;save(Number(input.value));}});
   input.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();});
 }

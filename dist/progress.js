@@ -1,6 +1,7 @@
 import {ROUTINES,loadUnit} from './model.js';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const colours=['#c1a2df','#71c6ba','#e2b778','#83b7ec','#df92ae','#b7c67c','#c6b6a7','#a5a4f3','#e69b79','#7ec2d7','#d5a9bd','#a3c6a8'];
+const reportable=e=>e.id!=='dips'&&!/\bdips?\b/i.test(e.name||e.variant||'');
 const keyOf=e=>JSON.stringify([e.id,e.variant||'']);
 const valueText=p=>(p.precision==='estimated'?'≈ ':'')+p.weight;
 
@@ -13,13 +14,13 @@ export function progressData(state,day){
   if(!series.has(key))series.set(key,{key,id:e.id,name:e.variant||e.name||ROUTINES[day].find(x=>x.id===e.id)?.name||e.id,colour:colours[series.size]||`hsl(${(series.size*137.508)%360} 44% 70%)`,points:[],current:false});
   return series.get(key);
  }
- for(const e of state.active.days[day].entries){const s=ensure(e);s.current=true;}
+ for(const e of state.active.days[day].entries){if(!reportable(e))continue;const s=ensure(e);s.current=true;}
  for(const w of weeks)for(const e of w.days[day]?.entries??[]){
-  const s=ensure(e);
+  if(!reportable(e))continue;const s=ensure(e);
   if(e.completed&&typeof e.weight==='number'&&Number.isFinite(e.weight))s.points.push({...e,week:w.number,weekId:w.id,loadUnit:loadUnit(e)});
  }
  for(const e of state.seed){
-  if(e.day!==day)continue;const s=ensure(e);
+  if(e.day!==day||!reportable(e))continue;if(!reportable(e))continue;const s=ensure(e);
   if(e.completed===false||typeof e.weight!=='number'||!Number.isFinite(e.weight))continue;
   // Migrations retain the actual week ID in sourceId. A calendar date alone does not identify a training week.
   const w=weeks.find(w=>e.sourceId?.startsWith('retired:'+w.id+':')||e.sourceId?.startsWith('replaced:'+w.id+':'));
@@ -77,7 +78,7 @@ export function mountProgress(root,state,view){
      markers+=`<g class="chart-point" role="button" aria-pressed="false" tabindex="0" data-point="${i}" style="--point-delay:${Math.round((xx-left)/plot*520)}ms" aria-label="${esc(series.name)}, Week ${p.week}, ${esc(result(p))}${p.reps==null?'':', '+p.reps+' reps'}"><circle class="point-hit" cx="${xx}" cy="${yy}" r="24"/><circle class="point-dot" cx="${xx}" cy="${yy}" r="3"/></g>`;});
     const ticks=weeks.filter((w,i)=>weeks.length<=6||i===0||i===weeks.length-1||i%Math.ceil(weeks.length/5)===0);
     axes+=ticks.map(w=>`<text class="axis-value" style="font-size:${font}px" x="${x(w)}" y="${H-font*.4}" text-anchor="middle">${w}</text>`).join('');
-    card.querySelector('.chart-stage').innerHTML=`<svg class="weight-chart" viewBox="0 0 ${W} ${H}" aria-label="${esc(series.name)} working weight by training week${unitLabel(unit)?', '+unitLabel(unit):''}"><defs><clipPath id="graph-reveal-${n}"><rect class="chart-reveal" x="${left-5}" y="0" width="${plot+10}" height="${H}"/></clipPath></defs>${axes}<g class="chart-series" style="--series:#c1a2df"><g clip-path="url(#graph-reveal-${n})"><path class="chart-line" d="${line}"/></g>${markers}</g></svg>${points.length?'':'<div class="chart-empty">No recorded weights in these weeks</div>'}`;
+    card.querySelector('.chart-stage').innerHTML=`<svg class="weight-chart" viewBox="0 0 ${W} ${H}" aria-label="${esc(series.name)} working weight by training week${unitLabel(unit)?', '+unitLabel(unit):''}"><defs><clipPath id="graph-reveal-${n}"><rect class="chart-reveal" x="${left-5}" y="0" width="${plot+10}" height="${H}"/></clipPath></defs>${axes}<g class="chart-series" style="--series:#62bb89"><g clip-path="url(#graph-reveal-${n})"><path class="chart-line" d="${line}"/></g>${markers}</g></svg>${points.length?'':'<div class="chart-empty">No recorded weights in these weeks</div>'}`;
     function showPoint(point){
      const detail=card.querySelector('.point-detail'),opacity=detail.getAnimations().length?Number(getComputedStyle(detail).opacity):.65;detail.getAnimations().forEach(a=>a.cancel());
      detail.innerHTML=point?`<span class="detail-week">Week ${point.week}</span><strong>${esc(series.name)}</strong><span class="detail-value">${esc(result(point))}${point.reps==null?'':'<small>× '+point.reps+' reps</small>'}</span>`:'<span class="detail-placeholder">Tap a point to see your recorded result</span>';

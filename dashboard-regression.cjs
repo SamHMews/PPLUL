@@ -20,6 +20,13 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
  assert.equal(data.unassigned[0].name,'Removed exercise');
  assert(!data.series.find(x=>x.id==='removed-exercise').points.length);
  assert.deepEqual(data.weeks,[1,2,3]);
+ // Completion rejects missing/invalid inputs without altering historical state. Zero is a valid explicit load.
+ const blank=m.initialState().active.days.Push,e=blank.entries[0];
+ assert.deepEqual(m.missingExerciseFields(e),['weight','reps','effort']);
+ for(const values of [{weight:0,reps:null,effort:'right'},{weight:null,reps:5,effort:'right'},{weight:0,reps:5,effort:null},{weight:NaN,reps:5,effort:'right'},{weight:0,reps:0,effort:'right'}]){Object.assign(e,values);assert.throws(()=>m.completeEntry(blank,e.id),/Log weight/);assert.equal(e.completed,false);}
+ Object.assign(e,{weight:0,reps:5,effort:'right'});assert.equal(m.completeEntry(blank,e.id),true);assert.equal(m.completeEntry(blank,e.id),false);
+ const withDips=structuredClone(s);withDips.seed.push({id:'dips',name:'Dips',day:'Push',weight:20,reps:8});withDips.archives[0].days.Push.entries.push({...e,id:'dips',name:'Dips'});const frozen=JSON.stringify(withDips);
+ assert(!report.progressData(withDips,'Push').series.some(e=>e.id==='dips'));assert(!report.progressData(withDips,'Push').unassigned.some(e=>e.id==='dips'));assert.equal(JSON.stringify(withDips),frozen,'Exclude Dips from reports without deleting history');
  console.log('PASS reporting source accuracy, gaps, units, zero values, removed exercises and immutable data; logging contracts unchanged');
  if(process.env.MODEL_ONLY)return;
  const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://localhost').pathname;fs.readFile(path.join(root,name==='/'?'index.html':name),(e,body)=>{if(e){res.writeHead(404).end();return;}res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.png')?'image/png':'text/html');res.end(body);});});
@@ -43,7 +50,7 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   assert.equal(await p.locator('.screen-heading .eyebrow').evaluate(e=>getComputedStyle(e).color),'rgb(193, 185, 203)','Week context uses readable solid colour');
 
   assert(await p.evaluate(()=>{const a=document.querySelector('#app'),f=document.querySelector('.app-footer');return Math.abs(f.getBoundingClientRect().bottom-innerHeight)<1&&a.scrollHeight<=a.clientHeight+1&&getComputedStyle(f).backdropFilter==='none';}),'Solid footer is flush with viewport and home fits with real safe-area space');
-  assert((await p.locator('.home-grid .tile').first().boundingBox()).height<=119,'Tiles should not stretch to fill screen');
+  assert(await p.locator('.home-grid').evaluate(e=>Math.abs(document.querySelector('.new-week-action').getBoundingClientRect().bottom-document.querySelector('#app').getBoundingClientRect().bottom+16)<2),'Six tiles fill the space down to New Week');assert(await p.locator('.screen-heading').evaluate(e=>e.getBoundingClientRect().top>=77),'Heading clears the iPhone blur edge');
   assert(await p.locator('#app').evaluate(e=>e.getBoundingClientRect().top>=47),'Status area is reserved outside the scroll surface');
   assert(await p.locator('.new-week-action').evaluate(e=>e.getBoundingClientRect().height>=44),'New week target is at least 44px');
   await p.evaluate(()=>{Object.defineProperty(visualViewport,'height',{configurable:true,value:724});visualViewport.dispatchEvent(new Event('resize'));});
@@ -75,8 +82,8 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   assert(await p.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1));await p.evaluate(async()=>{await Promise.all(document.getAnimations().map(a=>a.finished.catch(()=>{})));scrollTo(0,0);});await p.screenshot({path:'test-artifacts/dashboard-day.png'});
   await resizeViewport({width:375,height:667});assert(await p.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1),'Eight rows fit compact portrait too');
   await p.locator('.overview-row').nth(3).click();assert.equal(await p.locator('.is-front').getAttribute('data-entry'),'face-pull');
-  await p.locator('.is-front [data-action=equipment]').click();await p.locator('#increment').selectOption('5');await p.locator('#save-equipment').click();await p.locator('dialog').waitFor({state:'hidden'});await p.locator('.is-front [data-action=plus]').click();
-  await p.waitForFunction(()=>document.querySelector('.is-front .weight-value span')?.textContent.trim()!=='—');const range=p.locator('.is-front input[type=range]');await range.focus();await p.keyboard.press('End');await p.waitForTimeout(50);assert.equal(await range.inputValue(),'9');
+  await p.locator('.is-front [data-action=done]').click();assert.equal(await p.locator('.is-front .required-hint').count(),3);assert.equal(await p.locator('.is-front output').innerText(),'—');await p.screenshot({path:'test-artifacts/required-fields.png'});await p.locator('.is-front [data-action=equipment]').click();await p.locator('#increment').selectOption('5');await p.locator('#save-equipment').click();await p.locator('dialog').waitFor({state:'hidden'});await p.locator('.is-front [data-action=plus]').click();
+  await p.waitForFunction(()=>document.querySelector('.is-front .weight-value span')?.textContent.trim()!=='—');assert.equal(await p.locator('.is-front .required-hint').count(),2);const range=p.locator('.is-front input[type=range]');await range.focus();await p.keyboard.press('Home');await p.waitForFunction(()=>document.querySelector('.is-front output').textContent==='7');await p.waitForFunction(()=>document.querySelectorAll('.is-front .required-hint').length===1);await p.locator('.is-front [data-action=done]').click();assert.equal(await p.locator('.is-front.is-complete').count(),0);await range.focus();await p.keyboard.press('End');await p.waitForTimeout(50);assert.equal(await range.inputValue(),'9');
   await p.locator('.is-front [data-action=effort][data-effort=right]').click();await p.locator('.is-front [data-action=done]').click();await p.locator('.is-front.is-complete').waitFor();
   await p.locator('#overview-toggle').click();assert.equal(await p.locator('.overview-row.is-complete').count(),1);assert.equal(await p.locator('#app').getAttribute('data-entrance'),'false');
   await p.locator('[data-action=continue-workout]').click();assert.equal(await p.locator('.is-front').getAttribute('data-entry'),'face-pull');
@@ -85,7 +92,7 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   await p.evaluate(async fixture=>{const db=await import('./storage.js'),existing=await db.readState();fixture.revision=existing.revision+1;fixture.view={page:'progress',day:null};await db.persist(fixture,existing.revision);},s);
   await resizeViewport({width:390,height:844});await p.reload();await p.locator('.weight-chart').first().waitFor();
   await p.addStyleTag({content:':root{--shell-safe-top:47px;--shell-safe-bottom:34px}'});
-  const current=p.locator('.graph-card.is-current');
+  const current=p.locator('.graph-card.is-current');await p.waitForFunction(()=>{const line=document.querySelector('.graph-card.is-current .chart-line');return line&&getComputedStyle(line).stroke==='rgb(98, 187, 137)';});
   assert.equal(await p.locator('.exercise-filters').count(),0,'No exercise list below graph cards');
   assert.equal(await p.locator('.graph-card').count(),data.series.length,'Every configured and retired exercise has a graph');
   assert.equal(await current.locator('.graph-unit').innerText(),'kg','Graph inherits configured weight unit');

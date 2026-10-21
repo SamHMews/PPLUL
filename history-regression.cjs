@@ -1,3 +1,4 @@
+const {logRequiredFields}=require('./test-log-fields.cjs');
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),http=require('node:http');
 const root=fs.existsSync('dist/index.html')?'dist':'.';
 (async()=>{
@@ -21,8 +22,8 @@ const root=fs.existsSync('dist/index.html')?'dist':'.';
  assert.equal(m.previousResult(seeded,'Push',seedEntry).weight,45);
  seeded.seed[0].date=null;assert.equal(m.previousResult(seeded,'Push',seedEntry).weight,45);
  const shared=fresh();
- Object.assign(shared.active.days.Push.entries.find(e=>e.id==='incline-db'),{weight:25,reps:9});m.completeEntry(shared.active.days.Push,'incline-db');
- Object.assign(shared.active.days.Push.entries.find(e=>e.id==='lateral'),{weight:10,reps:10});m.completeEntry(shared.active.days.Push,'lateral');
+ Object.assign(shared.active.days.Push.entries.find(e=>e.id==='incline-db'),{weight:25,reps:9,effort:'right'});m.completeEntry(shared.active.days.Push,'incline-db');
+ Object.assign(shared.active.days.Push.entries.find(e=>e.id==='lateral'),{weight:10,reps:10,effort:'right'});m.completeEntry(shared.active.days.Push,'lateral');
  m.archiveWeek(shared);
  assert.equal(m.previousResult(shared,'Upper',shared.active.days.Upper.entries.find(e=>e.id==='incline-db')).weight,25);
  assert.equal(m.previousResult(shared,'Upper',shared.active.days.Upper.entries.find(e=>e.id==='lateral')),null,'Standing raises must not fill seated history');
@@ -56,7 +57,7 @@ const root=fs.existsSync('dist/index.html')?'dist':'.';
   assert.match(await page.locator('dialog').innerText(),/Bodyweight Skull Crushers.*feet elevated/s);
   await page.locator('dialog [data-close]').click();
   assert.equal(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1),true,'Card must fit a small phone');
-  await page.locator('.is-front [data-action=done]').click();
+  await logRequiredFields(page);await page.locator('.is-front [data-action=done]').click();
   await page.locator('.is-front.is-complete').waitFor();
   await page.locator('.is-front [data-action=exercise-info]').click();await page.locator('dialog [data-close]').click();
   fs.mkdirSync('test-artifacts',{recursive:true});await page.screenshot({path:'test-artifacts/upper-bodyweight.png'});
@@ -67,7 +68,7 @@ const root=fs.existsSync('dist/index.html')?'dist':'.';
   });
   await page.reload();const previous=page.locator('.is-front .previous');await previous.waitFor();
   assert.match(await previous.innerText(),/Last recorded:.*40 kg.*6/s);const reference=await previous.innerHTML();
-  await page.locator('.is-front [data-action=done]').click();await page.locator('.is-front.is-complete').waitFor();
+  await logRequiredFields(page);await page.locator('.is-front [data-action=done]').click();await page.locator('.is-front.is-complete').waitFor();
   assert.equal(await previous.innerHTML(),reference);await page.reload();assert.equal(await page.locator('.is-front .previous').innerHTML(),reference);
   console.log('PASS: small-phone layout, instructions after completion, latest result stays visible after completion and reload');
  }finally{await browser?.close();server.close();}
