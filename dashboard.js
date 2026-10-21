@@ -23,6 +23,11 @@ export function footer(page){
 // iOS Home Screen windows can retain a layout viewport taller than the visible viewport.
 // These dimensions affect the dashboard shell only, never the exercise deck or plate floor.
 export function installDashboardViewport(){
+ // Installed apps own the whole CSS viewport. iOS visualViewport can exclude
+ // the status area even when CSS includes it; do not shorten the shell twice.
+ const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+ document.documentElement.dataset.standalone=String(standalone);
+ if(standalone)return;
  let frame=0;
  const sync=()=>{
   frame=0;const viewport=window.visualViewport;

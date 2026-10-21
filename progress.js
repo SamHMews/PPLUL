@@ -44,7 +44,7 @@ export function mountProgress(root,state,view){
  const deck=root.querySelector('.graph-deck');
  function drawDay(){
   disposeDeck();const day=view.day,data=progressData(state,day);let scrollFrame=0,index=Math.min(view.cardIndices[day]||0,Math.max(0,data.series.length-1));
-  deck.innerHTML=data.series.map((s,n)=>`<article class="graph-card report-surface" data-graph-index="${n}" aria-roledescription="slide" aria-label="${esc(s.name)}, ${n+1} of ${data.series.length}"><div class="graph-heading"><div><p class="eyebrow">${s.current?'Working weight':'Previous exercise'}</p><h2>${esc(s.name)}</h2></div><span class="graph-unit"></span></div><div class="chart-window"><button type="button" data-window="-1" aria-label="Earlier training weeks">‹</button><span></span><button type="button" data-window="1" aria-label="Later training weeks">›</button></div><div class="graph-unit-options"></div><div class="chart-stage"></div><div class="point-detail" aria-live="polite"></div><div class="earlier-records"></div></article>`).join('');
+  deck.innerHTML=data.series.map((s,n)=>`<article class="graph-card report-surface" data-graph-index="${n}" aria-roledescription="slide" aria-label="${esc(s.name)}, ${n+1} of ${data.series.length}"><div class="graph-heading"><div><p class="eyebrow">${s.current?'Working weight':'Previous exercise'}</p><h2>${esc(s.name)}</h2></div><span class="graph-unit"></span></div><div class="chart-window"><button type="button" data-window="-1" aria-label="Earlier training weeks">‹</button><span></span><button type="button" data-window="1" aria-label="Later training weeks">›</button></div><div class="graph-unit-options"></div><div class="chart-axis-title chart-weight-title"></div><div class="chart-stage"></div><div class="chart-axis-title chart-week-title">Training week</div><div class="point-detail" aria-live="polite"></div><div class="earlier-records"></div></article>`).join('');
   const cards=[...deck.querySelectorAll('.graph-card')];
   cards.forEach((card,n)=>{
    const series=data.series[n],key=day+':'+series.key,configured=state.active.days[day].entries.find(e=>keyOf(e)===series.key);
@@ -56,6 +56,7 @@ export function mountProgress(root,state,view){
     view.units[key]=unit;const start=Math.min(view.windows[key]??Math.max(0,data.weeks.length-12),Math.max(0,data.weeks.length-1));view.windows[key]=start;
     const weeks=data.weeks.slice(start,start+12),points=series.points.filter(p=>p.loadUnit===unit&&weeks.includes(p.week));
     card.querySelector('.graph-unit').textContent=unitLabel(unit);
+    card.querySelector('.chart-weight-title').textContent='Weight'+(unitLabel(unit)?' ('+unitLabel(unit)+')':'');
     card.querySelector('.chart-window span').textContent=weeks.length>1?`Weeks ${weeks[0]}–${weeks.at(-1)}`:`Week ${weeks[0]}`;
     card.querySelector('[data-window="-1"]').disabled=start===0;card.querySelector('[data-window="1"]').disabled=start+12>=data.weeks.length;
     // An equipment unit change never relabels or converts older recorded values.

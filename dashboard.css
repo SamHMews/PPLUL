@@ -4,7 +4,11 @@
 body:has(.app-footer){position:fixed;inset:auto 0;top:var(--shell-viewport-top,0px);height:var(--shell-viewport-height,100dvh);padding-top:var(--shell-safe-top);display:flex;flex-direction:column;overflow:hidden;background:#111116}
 body:has(.app-footer) #app{flex:1;min-height:0;height:auto;width:100%;margin:0 auto;overflow-y:auto;overscroll-behavior-y:contain;padding-bottom:16px}
 body>div:has(>.app-footer){flex:none}
-.app-footer{position:relative;z-index:12;height:calc(var(--footer-height) + var(--shell-safe-bottom));padding:4px max(12px,calc((100% - 560px)/2)) var(--shell-safe-bottom);display:grid;grid-template-columns:repeat(4,1fr);background:#16151c;border-top:1px solid #ffffff0b}
+/* Opaque status bar + CSS viewport avoids the extra inset reported by iOS JS APIs. */
+html[data-standalone=true]:has(.app-footer){height:100%;overflow:hidden;background:#16151c}
+html[data-standalone=true] body:has(.app-footer){inset:0;height:100dvh}
+
+.app-footer{position:relative;z-index:12;height:calc(var(--footer-height) + var(--shell-safe-bottom));padding:6px max(12px,calc((100% - 560px)/2));display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;background:#16151c;border-top:1px solid #ffffff0b}
 .app-footer button{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;min-height:52px;padding:4px;color:#a29aa9;border-radius:12px;font-size:0.6875rem;font-weight:550;letter-spacing:.02em;transition:color 200ms,background 200ms}
 .app-footer svg{width:21px;height:21px}.app-footer [aria-current=page]{color:#c1a2df;background:#a58ab80a}.app-footer button:active{background:#352a42}
 #app[data-page=home]{height:auto;min-height:0;max-width:560px;padding:18px 18px 16px;gap:14px}
@@ -84,7 +88,10 @@ body:has(.app-footer) :is(.screen-heading,.overview-heading){min-width:0;flex-wr
 .overview-name{letter-spacing:0}
 .app-footer{min-height:calc(var(--footer-height) + var(--shell-safe-bottom));height:auto}
 .app-footer button{min-height:3.25rem;line-height:1.25;overflow-wrap:anywhere}
-.app-footer svg{flex-shrink:0}
+.app-footer svg{flex-shrink:0;display:block}
+.app-footer button{width:100%;align-self:center;min-width:0}
+.app-footer button span{display:block;text-align:center}
+body:has(.app-footer) :is(.screen-heading,.overview-heading) .eyebrow{color:#c1b9cb;font-weight:550;letter-spacing:.035em;opacity:1;text-shadow:none;filter:none}
 body:has(.app-footer) :is(button,summary){touch-action:manipulation}
 .new-week-action,.only-exercise{min-width:44px}
 .exercise-filter>button{min-height:44px;border-radius:8px}
@@ -120,3 +127,8 @@ body:has(.app-footer) #app:is([data-page=history],[data-page=backup]) :is(p,butt
 .graph-position{min-width:48px;text-align:center;font-size:.75rem;color:#b5adbd;font-variant-numeric:tabular-nums}
 .graph-pager button:active:not(:disabled){background:#352a42}.graph-pager button:disabled{cursor:default}
 .graph-deck:focus-visible{outline:2px solid #cdb5e2;outline-offset:2px}
+
+/* Axis meanings stay outside SVG scaling, including enlarged system text. */
+.chart-axis-title{font-size:.75rem;line-height:1.4;color:#c1b9cb;font-weight:500}
+.chart-weight-title{padding:0 6px 12px}
+.chart-week-title{text-align:center;padding:8px 6px 14px}
