@@ -137,7 +137,7 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   await p.locator('[data-route=backup]').click();
   for(let i=0;i<5;i++){await p.locator('.section-select').selectOption(String(i));await p.waitForTimeout(50);assert(await p.locator('#app').evaluate(e=>e.scrollHeight<=e.clientHeight+1),'Settings screen fits');assert(await p.locator('.panel:not([hidden])').evaluate(e=>e.scrollHeight<=e.clientHeight+1),'Settings section '+i+' fits without scrolling');}
   await p.emulateMedia({reducedMotion:'reduce'});await p.locator('[data-route=progress]').click();
-  assert.equal(await p.locator('.chart-reveal').first().evaluate(e=>getComputedStyle(e).animationName),'none');
+  await p.waitForFunction(()=>{const reveal=document.querySelector('.graph-card.is-current .chart-reveal');return reveal&&getComputedStyle(reveal).animationName==='none';});
 
   await p.emulateMedia({contrast:'more',reducedMotion:'reduce'});
   assert.equal(await p.locator('.chart-grid').first().evaluate(e=>getComputedStyle(e).stroke),'rgb(142, 129, 154)','Increased contrast produces stronger chart gridlines');

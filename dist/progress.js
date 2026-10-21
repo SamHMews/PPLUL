@@ -99,7 +99,7 @@ export function mountProgress(root,state,view){
    }
    card.querySelectorAll('[data-window]').forEach(b=>b.onclick=()=>{view.windows[key]=Math.max(0,(view.windows[key]??0)+Number(b.dataset.window)*12);drawGraph();});
    drawGraph();
-   let previousSize='';const graphObserver=new ResizeObserver(()=>{
+   const initialSize=card.querySelector('.chart-stage').getBoundingClientRect();let previousSize=Math.round(initialSize.width)+':'+Math.round(initialSize.height);const graphObserver=new ResizeObserver(()=>{
     const box=card.querySelector('.chart-stage').getBoundingClientRect(),size=Math.round(box.width)+':'+Math.round(box.height);
     if(size===previousSize)return;previousSize=size;drawGraph();
    });graphObserver.observe(card.querySelector('.chart-stage'));graphObservers.push(graphObserver);
