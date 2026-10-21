@@ -15,7 +15,8 @@ export function initialState(){return {schema:1,programmeVersion:5,revision:0,ac
 export const remaining=(session)=>session.entries.filter(e=>!e.completed);
 export function currentEntry(session){return session.entries.find(e=>e.id===session.current)||session.entries[0];}
 export function navigate(session,delta){const r=session.entries;if(!r.length)return;const i=r.findIndex(e=>e.id===session.current);session.current=r[(Math.max(0,i)+delta+r.length)%r.length].id;}
-export function completeEntry(session,id){const entry=session.entries.find(e=>e.id===id);if(!entry||entry.completed)return false;entry.completed=true;entry.completedAt=new Date().toISOString();return true;}
+export function missingExerciseFields(e){return [typeof e.weight==='number'&&Number.isFinite(e.weight)&&e.weight>=0?null:'weight',Number.isInteger(e.reps)&&e.reps>0?null:'reps',['more','right','hard'].includes(e.effort)?null:'effort'].filter(Boolean);}
+export function completeEntry(session,id){const entry=session.entries.find(e=>e.id===id);if(!entry||entry.completed)return false;if(missingExerciseFields(entry).length)throw new Error('Log weight, reps and effort before completing this exercise.');entry.completed=true;entry.completedAt=new Date().toISOString();return true;}
 export function archiveWeek(state){state.active.archivedAt=new Date().toISOString();state.archives.push(state.active);state.active=createWeek(state.active.number+1,state.settings);state.view={page:'home',day:null};}
 
 export const SEPTEMBER_RESULTS=[
