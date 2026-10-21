@@ -34,12 +34,23 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   assert.equal(await p.locator('.home-grid .tile').count(),6);assert.equal(await p.locator('.week-segments span').count(),5);
   assert(await p.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1));
   await p.addStyleTag({content:':root{--shell-safe-top:47px;--shell-safe-bottom:34px}'});
+  assert.equal(await p.locator('meta[name="apple-mobile-web-app-status-bar-style"]').getAttribute('content'),'black','Status bar must be opaque');
+  assert(await p.locator('.app-footer button').evaluateAll(buttons=>buttons.every(button=>{
+   const panel=button.closest('.app-footer').getBoundingClientRect(),b=button.getBoundingClientRect(),icon=button.querySelector('svg').getBoundingClientRect(),label=button.querySelector('span').getBoundingClientRect();
+   return Math.abs(b.y+b.height/2-panel.y-panel.height/2)<1&&panel.bottom-label.bottom>=20&&Math.abs(icon.x+icon.width/2-b.x-b.width/2)<1&&Math.abs(label.x+label.width/2-b.x-b.width/2)<1&&Math.abs((icon.top+label.bottom)/2-b.y-b.height/2)<1;
+  })),'Footer icon and label groups are centered inside all four equal targets');
+  assert.equal(await p.locator('.screen-heading .eyebrow').evaluate(e=>getComputedStyle(e).color),'rgb(193, 185, 203)','Week context uses readable solid colour');
+
   assert(await p.evaluate(()=>{const a=document.querySelector('#app'),f=document.querySelector('.app-footer');return Math.abs(f.getBoundingClientRect().bottom-innerHeight)<1&&a.scrollHeight<=a.clientHeight+1&&getComputedStyle(f).backdropFilter==='none';}),'Solid footer is flush with viewport and home fits with real safe-area space');
   assert((await p.locator('.home-grid .tile').first().boundingBox()).height<=119,'Tiles should not stretch to fill screen');
   assert(await p.locator('#app').evaluate(e=>e.getBoundingClientRect().top>=47),'Status area is reserved outside the scroll surface');
   assert(await p.locator('.new-week-action').evaluate(e=>e.getBoundingClientRect().height>=44),'New week target is at least 44px');
   await p.evaluate(()=>{Object.defineProperty(visualViewport,'height',{configurable:true,value:724});visualViewport.dispatchEvent(new Event('resize'));});
+  await p.waitForTimeout(80);
+  assert(await p.locator('.app-footer').evaluate(e=>Math.abs(e.getBoundingClientRect().bottom-844)<1),'A shortened iOS visualViewport must not create a bottom strip in standalone mode');
+  await p.setViewportSize({width:390,height:724});
   await p.waitForFunction(()=>Math.abs(document.querySelector('.app-footer').getBoundingClientRect().bottom-724)<1);
+  await p.setViewportSize({width:390,height:844});
   assert(await p.locator('#app').evaluate(e=>e.getBoundingClientRect().bottom<=document.querySelector('.app-footer').getBoundingClientRect().top),'Content and navigation fit a shorter visible viewport');
   await p.evaluate(()=>{delete visualViewport.height;visualViewport.dispatchEvent(new Event('resize'));});
   await p.waitForFunction(()=>Math.abs(document.querySelector('.app-footer').getBoundingClientRect().bottom-innerHeight)<1);
@@ -76,6 +87,8 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   assert.equal(await p.locator('.exercise-filters').count(),0,'No exercise list below graph cards');
   assert.equal(await p.locator('.graph-card').count(),data.series.length,'Every configured and retired exercise has a graph');
   assert.equal(await current.locator('.graph-unit').innerText(),'kg','Graph inherits configured weight unit');
+  assert.equal(await current.locator('.chart-weight-title').innerText(),'Weight (kg)');
+  assert.equal(await current.locator('.chart-week-title').innerText(),'Training week');
   assert.equal(await current.locator('.chart-grid').count(),7,'Numeric axis uses 10-unit steps');
   assert.equal((await current.locator('.chart-line').getAttribute('d')).match(/M/g).length,2,'Missing week breaks path');
   assert(!/[CQ]/.test(await current.locator('.chart-line').getAttribute('d')),'Straight segments only');
@@ -89,7 +102,7 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   for(let i=1;i<=10;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:origin.x-240*i/10,y:origin.y}]});await p.waitForTimeout(20);}
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   await p.waitForFunction(()=>document.querySelector('.graph-card.is-current')?.dataset.graphIndex==='1');
-  assert.equal(await current.locator('.graph-unit').innerText(),'lb');
+  assert.equal(await current.locator('.graph-unit').innerText(),'lb');assert.equal(await current.locator('.chart-weight-title').innerText(),'Weight (lb)');
   await p.getByRole('button',{name:'Previous exercise graph',exact:true}).click();
   await p.waitForFunction(()=>document.querySelector('.graph-deck').scrollLeft<1);
   assert(await p.evaluate(()=>window.chartElement===document.querySelector('.graph-card.is-current .weight-chart')),'Returning to a graph preserves its DOM and selected result');
@@ -99,11 +112,11 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   // Different historical units are accessible without relabelling values or converting them.
   await p.evaluate(async()=>{const db=await import('./storage.js'),s=await db.readState(),rev=s.revision;s.active.days.Push.entries[0].loadUnit='lb';await db.persist(s,rev);});
   await p.reload();await p.locator('.graph-card.is-current').waitFor();
-  assert.equal(await current.locator('.graph-unit').innerText(),'lb');
+  assert.equal(await current.locator('.graph-unit').innerText(),'lb');assert.equal(await current.locator('.chart-weight-title').innerText(),'Weight (lb)');
   await current.getByRole('combobox').selectOption('kg');assert.equal(await current.locator('[data-point]').count(),1);
   await current.getByRole('combobox').selectOption('lb');assert.equal(await current.locator('[data-point]').count(),1);
   await p.locator('.graph-deck').focus();for(let i=0;i<4;i++){await p.keyboard.press('ArrowRight');await p.waitForTimeout(350);}
-  assert.equal(await current.locator('h2').innerText(),'Lateral Raises');assert.equal(await current.locator('.graph-unit').innerText(),'','Unknown unit has no suffix');
+  assert.equal(await current.locator('h2').innerText(),'Lateral Raises');assert.equal(await current.locator('.graph-unit').innerText(),'','Unknown unit has no suffix');assert.equal(await current.locator('.chart-weight-title').innerText(),'Weight');
   await p.locator('[data-report-day=Legs]').click();
   assert.deepEqual(await current.locator('.axis-value[text-anchor="end"]').allTextContents(),Array.from({length:21},(_,i)=>String(i*10)),'Legs 0–200 axis shows every ten');
   assert(await current.locator('.weight-chart').evaluate(e=>{const labels=[...e.querySelectorAll('.axis-value[text-anchor="end"]')].map(x=>x.getBoundingClientRect());return labels.every((r,i)=>i===0||labels[i-1].top-r.bottom>=0);}),'Dense axis labels remain separated');
