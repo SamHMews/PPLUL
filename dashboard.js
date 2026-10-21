@@ -20,24 +20,33 @@ export function footer(page){
  return `<nav class="app-footer" aria-label="Main navigation">${[['home','Home'],['progress','Progress'],['history','History'],['backup','Settings']].map(([route,label])=>`<button type="button" data-route="${route}" ${route===page?'aria-current="page"':''}>${svg(icons[route])}<span>${label}</span></button>`).join('')}</nav>`;
 }
 
-// iOS Home Screen windows can retain a layout viewport taller than the visible viewport.
-// These dimensions affect the dashboard shell only, never the exercise deck or plate floor.
+// Correct only the known full-screen iPhone signature: the reported viewport
+// loses exactly the top safe inset. Opaque/native-inset installations have a
+// zero top inset and must not be extended beyond their drawable content area.
+export function dashboardViewportHeight({standalone,iphone,width,height,screenWidth,screenHeight,safeTop,visibleHeight}){
+ const gap=screenHeight-height;
+ if(standalone&&iphone&&safeTop>0&&Math.abs(screenWidth-width)<2&&gap>0&&Math.abs(gap-safeTop)<3)return screenHeight;
+ return standalone?height:Math.min(height,visibleHeight||height);
+}
 export function installDashboardViewport(){
- // Installed apps own the whole CSS viewport. iOS visualViewport can exclude
- // the status area even when CSS includes it; do not shorten the shell twice.
- const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+ const standalone=matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true;
+ const iphone=/iPhone|iPod/.test(navigator.userAgent);
  document.documentElement.dataset.standalone=String(standalone);
- if(standalone)return;
+ // A small opaque fixed surface is recognized by WebKit's scroll-edge sampler.
+ // A full-screen fixed body is not equivalent; meta tags alone are insufficient.
+ const status=document.createElement('div');status.className='status-surface';status.setAttribute('aria-hidden','true');document.body.append(status);
+ const probe=document.createElement('div');probe.style.cssText='position:absolute;top:0;left:0;visibility:hidden;pointer-events:none;width:1em;height:1em;padding-top:var(--shell-safe-top,env(safe-area-inset-top));';document.body.append(probe);
  let frame=0;
  const sync=()=>{
-  frame=0;const viewport=window.visualViewport;
-  if(viewport&&Math.abs(viewport.scale-1)>.01)return; // Preserve native pinch zoom.
-  const height=Math.min(window.innerHeight,viewport?.height||window.innerHeight);
+  frame=0;document.documentElement.dataset.largeType=String(parseFloat(getComputedStyle(document.documentElement).fontSize)>20);const viewport=window.visualViewport;
+  if(viewport&&Math.abs(viewport.scale-1)>.01)return;
+  const safeTop=parseFloat(getComputedStyle(probe).paddingTop)||0;
+  const height=dashboardViewportHeight({standalone,iphone,width:innerWidth,height:innerHeight,screenWidth:screen.width,screenHeight:screen.height,safeTop,visibleHeight:viewport?.height});
   document.documentElement.style.setProperty('--shell-viewport-height',height+'px');
-  document.documentElement.style.setProperty('--shell-viewport-top',(viewport?.offsetTop||0)+'px');
+  document.documentElement.style.setProperty('--shell-viewport-top',(standalone?0:viewport?.offsetTop||0)+'px');
  };
  const schedule=()=>{if(!frame)frame=requestAnimationFrame(sync);};
- sync();window.addEventListener('resize',schedule);window.addEventListener('pageshow',schedule);
+ new ResizeObserver(schedule).observe(probe);sync();window.addEventListener('resize',schedule);window.addEventListener('orientationchange',schedule);window.addEventListener('pageshow',schedule);
  window.visualViewport?.addEventListener('resize',schedule);window.visualViewport?.addEventListener('scroll',schedule);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)schedule();});
 }

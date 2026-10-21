@@ -5,8 +5,12 @@ body:has(.app-footer){position:fixed;inset:auto 0;top:var(--shell-viewport-top,0
 body:has(.app-footer) #app{flex:1;min-height:0;height:auto;width:100%;margin:0 auto;overflow-y:auto;overscroll-behavior-y:contain;padding-bottom:16px}
 body>div:has(>.app-footer){flex:none}
 /* Opaque status bar + CSS viewport avoids the extra inset reported by iOS JS APIs. */
-html[data-standalone=true]:has(.app-footer){height:100%;overflow:hidden;background:#16151c}
-html[data-standalone=true] body:has(.app-footer){inset:0;height:100dvh}
+html[data-standalone=true]:has(.app-footer){height:var(--shell-viewport-height,100dvh);overflow:hidden;background:#16151c}
+html[data-standalone=true] body:has(.app-footer){inset:0;height:var(--shell-viewport-height,100dvh)}
+.status-surface{display:none}
+html[data-standalone=true] body:has(.app-footer)>.status-surface{display:block;position:fixed;top:0;left:0;width:100%;height:max(8px,var(--shell-safe-top));background:#111116;z-index:30;pointer-events:none}
+body:has(.app-footer){background:#16151c}
+body:has(.app-footer) #app{background:#111116}
 
 .app-footer{position:relative;z-index:12;height:calc(var(--footer-height) + var(--shell-safe-bottom));padding:6px max(12px,calc((100% - 560px)/2));display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;background:#16151c;border-top:1px solid #ffffff0b}
 .app-footer button{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;min-height:52px;padding:4px;color:#a29aa9;border-radius:12px;font-size:0.6875rem;font-weight:550;letter-spacing:.02em;transition:color 200ms,background 200ms}
@@ -132,3 +136,67 @@ body:has(.app-footer) #app:is([data-page=history],[data-page=backup]) :is(p,butt
 .chart-axis-title{font-size:.75rem;line-height:1.4;color:#c1b9cb;font-weight:500}
 .chart-weight-title{padding:0 6px 12px}
 .chart-week-title{text-align:center;padding:8px 6px 14px}
+
+/* Screen-sized reporting: every slide shares one grid, regardless of weight range. */
+body:has(.app-footer) #app[data-page=progress]{display:flex;flex-direction:column;gap:10px;padding:14px 16px 8px;overflow-y:hidden}
+#app[data-page=progress] .screen-heading{flex:none;margin:0}
+#app[data-page=progress] .screen-heading h1{font-size:1.625rem}
+#app[data-page=progress] .screen-heading .eyebrow{margin-bottom:4px}
+#progress-report{display:flex;flex:1;min-height:0;flex-direction:column;gap:8px}
+#progress-report .workout-selector{flex:none;margin:0}
+.graph-deck{flex:1;min-height:0;align-items:stretch;overflow-y:hidden}
+.graph-card{height:100%;display:grid;grid-template-rows:64px 44px 44px minmax(100px,1fr) 28px 66px 44px;padding:12px 10px 0;overflow:hidden}
+.graph-heading{padding:0 6px;min-height:0;align-items:center}
+.graph-heading h2{font-size:1rem;line-height:1.2}
+.graph-heading .eyebrow{font-size:.625rem;margin-bottom:4px}
+.graph-unit{padding:0;font-size:.75rem}
+.graph-card .chart-window{margin:0}
+.graph-card .chart-window button{min-height:40px}
+.graph-unit-options label{font-size:.6875rem;height:44px}
+.graph-unit-options select{min-height:40px;font-size:.6875rem;padding:4px}
+.graph-card .chart-stage{min-height:0;height:100%;overflow:visible}
+.graph-card .weight-chart{width:100%;height:100%}
+.chart-weight-title{padding:4px 6px 0;font-size:.6875rem}
+.chart-week-title{padding:4px 0;font-size:.6875rem}
+.graph-card .point-detail{min-height:0;height:100%;padding:6px;gap:2px 8px}
+.graph-card .point-detail>strong{font-size:.6875rem}.graph-card .detail-value{font-size:.9375rem}
+.graph-card .earlier-records{padding:0;text-align:center}
+.earlier-result{min-height:32px;padding:2px 6px;font-size:.625rem;color:#baa3d1}
+.graph-pager{flex:none;padding:0;min-height:44px}
+/* Keep the same geometry whether or not a series has old-unit or undated records. */
+@media(max-height:760px){.graph-card{grid-template-rows:54px 44px 44px minmax(80px,1fr) 24px 58px 44px;padding-top:8px}.graph-heading h2{font-size:.875rem}.graph-card .chart-window button{min-height:36px}.graph-card .point-detail{padding:4px}.earlier-result{min-height:28px}}
+/* Enlarged text and landscape remain reachable rather than being clipped. */
+@media(max-height:600px){body:has(.app-footer) #app[data-page=progress]{overflow-y:auto}#progress-report{flex:none;height:570px}}
+html[data-large-type=true] body:has(.app-footer) #app[data-page=progress]{overflow-y:auto}
+html[data-large-type=true] #progress-report{flex:none;height:900px}
+html[data-large-type=true] .graph-card{grid-template-rows:110px 64px 70px minmax(140px,1fr) 48px 120px 48px}
+html[data-large-type=true] .graph-heading h2{font-size:1rem}
+/* Secondary screens use sections and result pages instead of a long document. */
+body:has(.app-footer) #app:is([data-page=history],[data-page=backup]){display:flex;flex-direction:column;gap:12px;padding:16px 16px 12px;overflow-y:hidden}
+#app:is([data-page=history],[data-page=backup])>.back{display:none}
+#app:is([data-page=history],[data-page=backup])>header{margin:0;flex:none;min-height:42px}
+#app:is([data-page=history],[data-page=backup]) h1{font-size:1.625rem;letter-spacing:-.035em}
+#app:is([data-page=history],[data-page=backup])>[hidden],#app:is([data-page=history],[data-page=backup]) .panel [hidden]{display:none!important}
+.section-controls{display:flex;gap:8px;flex:none;min-width:0}
+.section-controls select{margin:0;min-width:0;min-height:44px;padding:8px;font-size:.8125rem;flex:1}
+#app:is([data-page=history],[data-page=backup])>.panel{flex:1;min-height:0;margin:0;padding:14px;overflow-y:auto;overscroll-behavior:contain}
+#app:is([data-page=history],[data-page=backup]) .panel h2{font-size:1.125rem;line-height:1.3}
+body:has(.app-footer) #app:is([data-page=history],[data-page=backup]) .panel p{font-size:.8125rem;line-height:1.4;margin:9px 0}
+#app[data-page=backup] .panel label{font-size:.8125rem}
+#app[data-page=backup] .panel input{width:100%;min-height:44px;max-width:100%;background:#17141c;border:1px solid #52475d;border-radius:10px;padding:8px;margin-top:6px}
+#app[data-page=backup] .panel .actions{margin-top:10px;gap:8px}
+#app[data-page=backup] .panel :is(.primary,.outline){min-height:44px;padding:8px 10px;font-size:.8125rem}
+#app[data-page=backup] .panel .text-button{min-height:44px;padding:8px 0}
+#app[data-page=history] .panel .row{padding:12px 0;min-height:60px}
+#app[data-page=history] .row strong{font-size:.875rem;line-height:1.3}
+#app[data-page=history] .panel .row p{margin:5px 0 0;font-size:.75rem}
+.record-pager{display:flex;justify-content:center;align-items:center;gap:20px;flex:none;height:44px;font-size:.75rem;color:#b9a3ce}
+.record-pager button{height:44px;min-width:44px;font-size:1.5rem}
+html[data-large-type=true] #app[data-page=backup]>.panel{overflow-y:auto}
+@media(max-height:600px){body:has(.app-footer) #app:is([data-page=history],[data-page=backup]){overflow-y:auto}#app:is([data-page=history],[data-page=backup])>.panel{min-height:350px;flex:none}}
+
+.chart-axis-row{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
+.chart-axis-row .chart-weight-title{padding:0 6px}
+.chart-axis-row .graph-unit-options label{font-size:0;padding:0}
+.chart-axis-row .graph-unit-options select{max-width:140px;min-height:44px;font-size:.6875rem}
+.graph-card .chart-window button,.graph-card .earlier-result{min-height:44px}

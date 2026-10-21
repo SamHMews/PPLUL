@@ -43,8 +43,8 @@ export function mountProgress(root,state,view){
  root.innerHTML='<div class="workout-selector" role="group" aria-label="Workout">'+days.map(d=>`<button type="button" data-report-day="${d}" aria-pressed="${d===view.day}">${d}</button>`).join('')+'</div><div class="graph-deck" role="region" aria-roledescription="carousel" aria-label="Exercise progress graphs" tabindex="0"></div><div class="graph-pager"><button type="button" data-graph-direction="-1" aria-label="Previous exercise graph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><span class="graph-position" aria-live="polite"></span><button type="button" data-graph-direction="1" aria-label="Next exercise graph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></div>';
  const deck=root.querySelector('.graph-deck');
  function drawDay(){
-  disposeDeck();const day=view.day,data=progressData(state,day);let scrollFrame=0,index=Math.min(view.cardIndices[day]||0,Math.max(0,data.series.length-1));
-  deck.innerHTML=data.series.map((s,n)=>`<article class="graph-card report-surface" data-graph-index="${n}" aria-roledescription="slide" aria-label="${esc(s.name)}, ${n+1} of ${data.series.length}"><div class="graph-heading"><div><p class="eyebrow">${s.current?'Working weight':'Previous exercise'}</p><h2>${esc(s.name)}</h2></div><span class="graph-unit"></span></div><div class="chart-window"><button type="button" data-window="-1" aria-label="Earlier training weeks">‹</button><span></span><button type="button" data-window="1" aria-label="Later training weeks">›</button></div><div class="graph-unit-options"></div><div class="chart-axis-title chart-weight-title"></div><div class="chart-stage"></div><div class="chart-axis-title chart-week-title">Training week</div><div class="point-detail" aria-live="polite"></div><div class="earlier-records"></div></article>`).join('');
+  disposeDeck();const day=view.day,data=progressData(state,day);let scrollFrame=0;const graphObservers=[];let index=Math.min(view.cardIndices[day]||0,Math.max(0,data.series.length-1));
+  deck.innerHTML=data.series.map((s,n)=>`<article class="graph-card report-surface" data-graph-index="${n}" aria-roledescription="slide" aria-label="${esc(s.name)}, ${n+1} of ${data.series.length}"><div class="graph-heading"><div><p class="eyebrow">${s.current?'Working weight':'Previous exercise'}</p><h2>${esc(s.name)}</h2></div><span class="graph-unit"></span></div><div class="chart-window"><button type="button" data-window="-1" aria-label="Earlier training weeks">‹</button><span></span><button type="button" data-window="1" aria-label="Later training weeks">›</button></div><div class="chart-axis-row"><div class="chart-axis-title chart-weight-title"></div><div class="graph-unit-options"></div></div><div class="chart-stage"></div><div class="chart-axis-title chart-week-title">Training week</div><div class="point-detail" aria-live="polite"></div><div class="earlier-records"></div></article>`).join('');
   const cards=[...deck.querySelectorAll('.graph-card')];
   cards.forEach((card,n)=>{
    const series=data.series[n],key=day+':'+series.key,configured=state.active.days[day].entries.find(e=>keyOf(e)===series.key);
@@ -64,14 +64,19 @@ export function mountProgress(root,state,view){
     const select=card.querySelector('select');if(select)select.onchange=()=>{unit=select.value;drawGraph();};
     const maximum=Math.max(1,...points.map(p=>p.weight)),step=Math.max(10,Math.ceil(maximum/1000)*10),max=Math.ceil(maximum/step)*step;
     const typeScale=Math.max(1,parseFloat(getComputedStyle(root).fontSize)/16);
-    const W=344,H=Math.max(218,max/step*16*typeScale+44*typeScale),left=Math.min(110,39*typeScale),right=330,top=14*typeScale,bottom=H-30*typeScale,plot=right-left;
+    const stage=card.querySelector('.chart-stage'),size=stage.getBoundingClientRect();
+    const W=344,scale=W/Math.max(1,size.width),H=Math.max(110,size.height*scale),font=11*scale*typeScale;
+    const left=Math.min(110,39*typeScale),right=330,top=font,bottom=H-font*2.2,plot=right-left;
+    // Keep the plot inside the card. Fine 10-unit gridlines remain; only crowded
+    // numeric labels are thinned, never actual values or recorded points.
+    const labelEvery=Math.max(1,Math.ceil((max/step)*font*1.45/Math.max(1,bottom-top)));
     const x=w=>weeks.length===1?(left+right)/2:left+weeks.indexOf(w)*plot/(weeks.length-1),y=v=>bottom-v/max*(bottom-top);
     let axes='',line='',prior=null,markers='';
-    for(let value=0;value<=max;value+=step){const yy=y(value);axes+=`<path class="chart-grid" d="M${left} ${yy}H${right}"/><text class="axis-value" x="${left-7}" y="${yy+3}" text-anchor="end">${value}</text>`;}
+    for(let value=0;value<=max;value+=step){const yy=y(value);axes+=`<path class="chart-grid" d="M${left} ${yy}H${right}"/>`;if(value===0||value===max||(value/step)%labelEvery===0&&max-value>=step*labelEvery*.7)axes+=`<text class="axis-value" style="font-size:${font}px" x="${left-7}" y="${yy+font*.3}" text-anchor="end">${value}</text>`;}
     points.forEach((p,i)=>{const xx=x(p.week),yy=y(p.weight);line+=(prior&&p.week===prior.week+1&&p.unit===prior.unit?'L':'M')+xx+' '+yy+' ';prior=p;
      markers+=`<g class="chart-point" role="button" aria-pressed="false" tabindex="0" data-point="${i}" style="--point-delay:${Math.round((xx-left)/plot*520)}ms" aria-label="${esc(series.name)}, Week ${p.week}, ${esc(result(p))}${p.reps==null?'':', '+p.reps+' reps'}"><circle class="point-hit" cx="${xx}" cy="${yy}" r="24"/><circle class="point-dot" cx="${xx}" cy="${yy}" r="3"/></g>`;});
     const ticks=weeks.filter((w,i)=>weeks.length<=6||i===0||i===weeks.length-1||i%Math.ceil(weeks.length/5)===0);
-    axes+=ticks.map(w=>`<text class="axis-value" x="${x(w)}" y="${H-7}" text-anchor="middle">${w}</text>`).join('');
+    axes+=ticks.map(w=>`<text class="axis-value" style="font-size:${font}px" x="${x(w)}" y="${H-font*.4}" text-anchor="middle">${w}</text>`).join('');
     card.querySelector('.chart-stage').innerHTML=`<svg class="weight-chart" viewBox="0 0 ${W} ${H}" aria-label="${esc(series.name)} working weight by training week${unitLabel(unit)?', '+unitLabel(unit):''}"><defs><clipPath id="graph-reveal-${n}"><rect class="chart-reveal" x="${left-5}" y="0" width="${plot+10}" height="${H}"/></clipPath></defs>${axes}<g class="chart-series" style="--series:#c1a2df"><g clip-path="url(#graph-reveal-${n})"><path class="chart-line" d="${line}"/></g>${markers}</g></svg>${points.length?'':'<div class="chart-empty">No recorded weights in these weeks</div>'}`;
     function showPoint(point){
      const detail=card.querySelector('.point-detail'),opacity=detail.getAnimations().length?Number(getComputedStyle(detail).opacity):.65;detail.getAnimations().forEach(a=>a.cancel());
@@ -82,10 +87,22 @@ export function mountProgress(root,state,view){
     card.querySelectorAll('[data-point]').forEach(el=>{const choose=()=>{const point=points[Number(el.dataset.point)];view.points[key]=point.weekId;showPoint(point);};el.onclick=choose;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choose();}};});
     showPoint(points.find(p=>p.weekId===view.points[key]));
     const earlier=data.unassigned.filter(p=>p.key===series.key&&p.loadUnit===unit);
-    card.querySelector('.earlier-records').innerHTML=earlier.length?`<details><summary>Earlier records · Week not recorded (${earlier.length})</summary>${earlier.map(p=>`<div class="earlier-row"><strong>${esc(result(p))}${p.reps==null?'':' · '+p.reps+' reps'}</strong>${p.date?'<span>'+esc(p.date.slice(0,10))+'</span>':''}</div>`).join('')}</details>`:'';
+    const legacy=card.querySelector('.earlier-records');
+    legacy.innerHTML=earlier.length?'<button type="button" class="earlier-result">Earlier records · '+earlier.length+'</button>':'';
+    let earlierIndex=0;const earlierButton=legacy.querySelector('button');
+    if(earlierButton)earlierButton.onclick=()=>{const point=earlier[earlierIndex];
+     const detail=card.querySelector('.point-detail');detail.innerHTML=`<span class="detail-week">Earlier record · Week not recorded${point.date?' · '+esc(point.date.slice(0,10)):''}</span><strong>${esc(series.name)}</strong><span class="detail-value">${esc(result(point))}${point.reps==null?'':'<small>× '+point.reps+' reps</small>'}</span>`;
+     card.querySelectorAll('[data-point]').forEach(el=>{el.classList.remove('is-selected');el.setAttribute('aria-pressed','false');});
+     earlierButton.textContent=`Earlier record ${earlierIndex+1} of ${earlier.length} · Next`;earlierIndex=(earlierIndex+1)%earlier.length;
+    };
+
    }
    card.querySelectorAll('[data-window]').forEach(b=>b.onclick=()=>{view.windows[key]=Math.max(0,(view.windows[key]??0)+Number(b.dataset.window)*12);drawGraph();});
    drawGraph();
+   const initialSize=card.querySelector('.chart-stage').getBoundingClientRect();let previousSize=Math.round(initialSize.width)+':'+Math.round(initialSize.height);const graphObserver=new ResizeObserver(()=>{
+    const box=card.querySelector('.chart-stage').getBoundingClientRect(),size=Math.round(box.width)+':'+Math.round(box.height);
+    if(size===previousSize)return;previousSize=size;drawGraph();
+   });graphObserver.observe(card.querySelector('.chart-stage'));graphObservers.push(graphObserver);
   });
   const positions=()=>cards.map(c=>c.offsetLeft-cards[0].offsetLeft);
   function update(){
@@ -99,7 +116,7 @@ export function mountProgress(root,state,view){
   root.querySelectorAll('[data-graph-direction]').forEach(b=>b.onclick=()=>move(Number(b.dataset.graphDirection)));
   update();deck.scrollTo({left:positions()[index]||0,behavior:'instant'});
   const resize=new ResizeObserver(()=>deck.scrollTo({left:positions()[index]||0,behavior:'instant'}));resize.observe(deck);
-  disposeDeck=()=>{resize.disconnect();cancelAnimationFrame(scrollFrame);deck.onscroll=null;deck.onkeydown=null;};
+  disposeDeck=()=>{resize.disconnect();graphObservers.forEach(o=>o.disconnect());cancelAnimationFrame(scrollFrame);deck.onscroll=null;deck.onkeydown=null;};
  }
  root.querySelectorAll('[data-report-day]').forEach(b=>b.onclick=()=>{if(view.day===b.dataset.reportDay)return;view.day=b.dataset.reportDay;root.querySelectorAll('[data-report-day]').forEach(t=>t.setAttribute('aria-pressed',String(t===b)));drawDay();});
  drawDay();return()=>disposeDeck();
