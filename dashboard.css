@@ -200,3 +200,17 @@ html[data-large-type=true] #app[data-page=backup]>.panel{overflow-y:auto}
 .chart-axis-row .graph-unit-options label{font-size:0;padding:0}
 .chart-axis-row .graph-unit-options select{max-width:140px;min-height:44px;font-size:.6875rem}
 .graph-card .chart-window button,.graph-card .earlier-result{min-height:44px}
+
+/* Let the six tiles use the remaining height, while leaving headings below the iOS edge effect. */
+body:has(.app-footer) #app{padding-top:30px!important}
+#app[data-page=home] .home-grid{flex:1;grid-template-rows:repeat(3,minmax(80px,1fr))}
+#app[data-page=home] .tile{justify-content:space-between}
+/* Inline validation occupies existing label space, without shifting the card. */
+.required-hint{font-size:.625rem;font-weight:550;letter-spacing:0;color:#e4ba91;margin-left:8px;white-space:nowrap}
+.exercise-card .effort{position:relative}
+.effort>.required-hint{position:absolute;right:0;top:-14px;margin:0;line-height:12px}
+.needs-input:is(.weight-stepper,.rep-control){outline:1px solid #e4ba9166;outline-offset:3px;border-radius:10px}
+.effort.needs-input button{border-color:#e4ba9180}
+@media(max-height:720px){body:has(.app-footer) #app{padding-top:24px!important}}
+@media(max-height:600px){#app[data-page=home] .home-grid{flex:none;grid-template-rows:repeat(3,minmax(80px,auto))}}
+html[data-large-type=true] #app[data-page=home] .home-grid{flex:none;grid-template-rows:repeat(3,minmax(6rem,auto))}
