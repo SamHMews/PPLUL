@@ -214,3 +214,6 @@ body:has(.app-footer) #app{padding-top:30px!important}
 @media(max-height:720px){body:has(.app-footer) #app{padding-top:24px!important}}
 @media(max-height:600px){#app[data-page=home] .home-grid{flex:none;grid-template-rows:repeat(3,minmax(80px,auto))}}
 html[data-large-type=true] #app[data-page=home] .home-grid{flex:none;grid-template-rows:repeat(3,minmax(6rem,auto))}
+
+.chart-point.is-carried .point-dot{fill:var(--surface,#201f27);stroke:var(--series);stroke-width:1.5}
+.bodyweight-label{color:var(--muted);font-size:.875rem;text-align:center;padding:1.25rem 0}

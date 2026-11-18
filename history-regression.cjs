@@ -52,13 +52,13 @@ const root=fs.existsSync('dist/index.html')?'dist':'.';
   const context=await browser.newContext({viewport:{width:375,height:667},serviceWorkers:'block'});
   const page=await context.newPage();await page.goto('http://127.0.0.1:'+server.address().port);
   await page.locator('[data-day=Upper]').click();
-  await page.locator('[data-progress=bodyweight-tricep-extensions]').click();
+  await page.locator('[data-progress=bodyweight-tricep-extensions]').click();await page.waitForFunction(()=>document.querySelector('.is-front')?.dataset.entry==='bodyweight-tricep-extensions');assert.equal(await page.locator('.is-front .weight-stepper, .is-front [data-action=equipment]').count(),0);await page.locator('.is-front [data-action=done]').click();assert.equal(await page.locator('.is-front .required-hint').count(),2);assert.equal(await page.locator('.is-front.is-complete').count(),0);
   await page.locator('.is-front [data-action=exercise-info]').click();
   assert.match(await page.locator('dialog').innerText(),/Bodyweight Skull Crushers.*feet elevated/s);
   await page.locator('dialog [data-close]').click();
   assert.equal(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1),true,'Card must fit a small phone');
   await logRequiredFields(page);await page.locator('.is-front [data-action=done]').click();
-  await page.locator('.is-front.is-complete').waitFor();
+  await page.locator('.is-front.is-complete').waitFor();assert.match(await page.locator('.is-front').innerText(),/Bodyweight/);
   await page.locator('.is-front [data-action=exercise-info]').click();await page.locator('dialog [data-close]').click();
   fs.mkdirSync('test-artifacts',{recursive:true});await page.screenshot({path:'test-artifacts/upper-bodyweight.png'});
   await page.evaluate(async()=>{

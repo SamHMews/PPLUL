@@ -1,4 +1,4 @@
-import {ROUTINES,loadUnit} from './model.js';
+import {ROUTINES,loadUnit,isBodyweightOnly} from './model.js';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const colours=['#c1a2df','#71c6ba','#e2b778','#83b7ec','#df92ae','#b7c67c','#c6b6a7','#a5a4f3','#e69b79','#7ec2d7','#d5a9bd','#a3c6a8'];
 const reportable=e=>e.id!=='dips'&&!/\bdips?\b/i.test(e.name||e.variant||'');
@@ -20,7 +20,7 @@ export function progressData(state,day){
   if(e.completed&&typeof e.weight==='number'&&Number.isFinite(e.weight))s.points.push({...e,week:w.number,weekId:w.id,loadUnit:loadUnit(e)});
  }
  for(const e of state.seed){
-  if(e.day!==day||!reportable(e))continue;if(!reportable(e))continue;const s=ensure(e);
+  if(e.day!==day||!reportable(e))continue;const s=ensure(e);
   if(e.completed===false||typeof e.weight!=='number'||!Number.isFinite(e.weight))continue;
   // Migrations retain the actual week ID in sourceId. A calendar date alone does not identify a training week.
   const w=weeks.find(w=>e.sourceId?.startsWith('retired:'+w.id+':')||e.sourceId?.startsWith('replaced:'+w.id+':'));
@@ -30,6 +30,20 @@ export function progressData(state,day){
  }
  for(const s of series.values())s.points.sort((a,b)=>a.week-b.week);
  return {weeks:weeks.map(w=>w.number),series:[...series.values()],unassigned};
+}
+
+// Presentation-only carry-forward. Never write inferred points into saved results.
+export function displayPoints(series,weeks,unit,weekStates=[]){
+ const result=[];let previous=null;
+ for(const week of weeks){
+  const actual=series.points.find(p=>p.week===week);
+  if(actual){previous=actual; if(actual.loadUnit===unit)result.push(actual);continue;}
+  const context=weekStates.find(w=>w.number===week),entry=context?.entry;
+  if(entry?.completed&&isBodyweightOnly(entry)){previous=null;continue;}
+  if(!previous||previous.loadUnit!==unit)continue;
+  result.push({week,weekId:context?.id||'unlogged:'+week,weight:previous.weight,loadUnit:previous.loadUnit,unit:previous.unit,precision:previous.precision,carried:true,sourceWeek:previous.week,reps:null,effort:null,status:entry?.completed?'Weight not logged':context?.active?'Not logged yet':'Missed'});
+ }
+ return result;
 }
 
 export function progressMarkup(){
@@ -55,7 +69,8 @@ export function mountProgress(root,state,view){
    let unit=units.includes(view.units[key])?view.units[key]:preferred;
    function drawGraph(){
     view.units[key]=unit;const start=Math.min(view.windows[key]??Math.max(0,data.weeks.length-12),Math.max(0,data.weeks.length-1));view.windows[key]=start;
-    const weeks=data.weeks.slice(start,start+12),points=series.points.filter(p=>p.loadUnit===unit&&weeks.includes(p.week));
+    const weeks=data.weeks.slice(start,start+12),weekStates=[...state.archives,state.active].map(w=>({id:w.id,number:w.number,active:w.id===state.active.id,entry:w.days[day]?.entries.find(e=>keyOf(e)===series.key)}));
+    const points=displayPoints(series,data.weeks,unit,weekStates).filter(p=>weeks.includes(p.week));
     card.querySelector('.graph-unit').textContent=unitLabel(unit);
     card.querySelector('.chart-weight-title').textContent='Weight'+(unitLabel(unit)?' ('+unitLabel(unit)+')':'');
     card.querySelector('.chart-window span').textContent=weeks.length>1?`Weeks ${weeks[0]}–${weeks.at(-1)}`:`Week ${weeks[0]}`;
@@ -72,16 +87,16 @@ export function mountProgress(root,state,view){
     // numeric labels are thinned, never actual values or recorded points.
     const labelEvery=Math.max(1,Math.ceil((max/step)*font*1.45/Math.max(1,bottom-top)));
     const x=w=>weeks.length===1?(left+right)/2:left+weeks.indexOf(w)*plot/(weeks.length-1),y=v=>bottom-v/max*(bottom-top);
-    let axes='',line='',prior=null,markers='';
+    let axes='',line='',dotted='',prior=null,markers='';
     for(let value=0;value<=max;value+=step){const yy=y(value);axes+=`<path class="chart-grid" d="M${left} ${yy}H${right}"/>`;if(value===0||value===max||(value/step)%labelEvery===0&&max-value>=step*labelEvery*.7)axes+=`<text class="axis-value" style="font-size:${font}px" x="${left-7}" y="${yy+font*.3}" text-anchor="end">${value}</text>`;}
-    points.forEach((p,i)=>{const xx=x(p.week),yy=y(p.weight);line+=(prior&&p.week===prior.week+1&&p.unit===prior.unit?'L':'M')+xx+' '+yy+' ';prior=p;
-     markers+=`<g class="chart-point" role="button" aria-pressed="false" tabindex="0" data-point="${i}" style="--point-delay:${Math.round((xx-left)/plot*520)}ms" aria-label="${esc(series.name)}, Week ${p.week}, ${esc(result(p))}${p.reps==null?'':', '+p.reps+' reps'}"><circle class="point-hit" cx="${xx}" cy="${yy}" r="24"/><circle class="point-dot" cx="${xx}" cy="${yy}" r="3"/></g>`;});
+    points.forEach((p,i)=>{const xx=x(p.week),yy=y(p.weight);if(prior&&p.week===prior.week+1&&p.unit===prior.unit){const segment='M'+x(prior.week)+' '+y(prior.weight)+' L'+xx+' '+yy+' ';if(p.carried||prior.carried)dotted+=segment;else line+=segment;}prior=p;
+     markers+=`<g class="chart-point ${p.carried?'is-carried':''}" role="button" aria-pressed="false" tabindex="0" data-point="${i}" style="--point-delay:${Math.round((xx-left)/plot*520)}ms" aria-label="${esc(series.name)}, Week ${p.week}, ${p.carried?p.status+', last recorded weight carried forward, ':''}${esc(result(p))}${p.reps==null?'':', '+p.reps+' reps'}"><circle class="point-hit" cx="${xx}" cy="${yy}" r="24"/><circle class="point-dot" cx="${xx}" cy="${yy}" r="3"/></g>`;});
     const ticks=weeks.filter((w,i)=>weeks.length<=6||i===0||i===weeks.length-1||i%Math.ceil(weeks.length/5)===0);
     axes+=ticks.map(w=>`<text class="axis-value" style="font-size:${font}px" x="${x(w)}" y="${H-font*.4}" text-anchor="middle">${w}</text>`).join('');
-    card.querySelector('.chart-stage').innerHTML=`<svg class="weight-chart" viewBox="0 0 ${W} ${H}" aria-label="${esc(series.name)} working weight by training week${unitLabel(unit)?', '+unitLabel(unit):''}"><defs><clipPath id="graph-reveal-${n}"><rect class="chart-reveal" x="${left-5}" y="0" width="${plot+10}" height="${H}"/></clipPath></defs>${axes}<g class="chart-series" style="--series:#62bb89"><g clip-path="url(#graph-reveal-${n})"><path class="chart-line" d="${line}"/></g>${markers}</g></svg>${points.length?'':'<div class="chart-empty">No recorded weights in these weeks</div>'}`;
+    card.querySelector('.chart-stage').innerHTML=`<svg class="weight-chart" viewBox="0 0 ${W} ${H}" aria-label="${esc(series.name)} working weight by training week${unitLabel(unit)?', '+unitLabel(unit):''}"><defs><clipPath id="graph-reveal-${n}"><rect class="chart-reveal" x="${left-5}" y="0" width="${plot+10}" height="${H}"/></clipPath></defs>${axes}<g class="chart-series" style="--series:#62bb89"><g clip-path="url(#graph-reveal-${n})"><path class="chart-line" d="${line}"/><path class="chart-line chart-carried" d="${dotted}" stroke-dasharray="1 5" stroke-linecap="round"/></g>${markers}</g></svg>${points.length?'':'<div class="chart-empty">'+(configured&&isBodyweightOnly(configured)?'Bodyweight exercise · No working weight':'No recorded weights in these weeks')+'</div>'}`;
     function showPoint(point){
      const detail=card.querySelector('.point-detail'),opacity=detail.getAnimations().length?Number(getComputedStyle(detail).opacity):.65;detail.getAnimations().forEach(a=>a.cancel());
-     detail.innerHTML=point?`<span class="detail-week">Week ${point.week}</span><strong>${esc(series.name)}</strong><span class="detail-value">${esc(result(point))}${point.reps==null?'':'<small>× '+point.reps+' reps</small>'}</span>`:'<span class="detail-placeholder">Tap a point to see your recorded result</span>';
+     detail.innerHTML=point?`<span class="detail-week">Week ${point.week}${point.carried?' · '+point.status:''}</span><strong>${esc(series.name)}</strong><span class="detail-value">${esc(result(point))}${point.carried?'<small>Carried from Week '+point.sourceWeek+'</small>':point.reps==null?'':'<small>× '+point.reps+' reps</small>'}</span>`:'<span class="detail-placeholder">Dotted = no log · Tap for details</span>';
      card.querySelectorAll('[data-point]').forEach(el=>{const selected=points[Number(el.dataset.point)]===point;el.classList.toggle('is-selected',selected);el.setAttribute('aria-pressed',String(selected));});
      if(point&&!reduced())detail.animate([{opacity},{opacity:1}],{duration:220});
     }
@@ -92,7 +107,7 @@ export function mountProgress(root,state,view){
     legacy.innerHTML=earlier.length?'<button type="button" class="earlier-result">Earlier records · '+earlier.length+'</button>':'';
     let earlierIndex=0;const earlierButton=legacy.querySelector('button');
     if(earlierButton)earlierButton.onclick=()=>{const point=earlier[earlierIndex];
-     const detail=card.querySelector('.point-detail');detail.innerHTML=`<span class="detail-week">Earlier record · Week not recorded${point.date?' · '+esc(point.date.slice(0,10)):''}</span><strong>${esc(series.name)}</strong><span class="detail-value">${esc(result(point))}${point.reps==null?'':'<small>× '+point.reps+' reps</small>'}</span>`;
+     const detail=card.querySelector('.point-detail');detail.innerHTML=`<span class="detail-week">Earlier record · Week not recorded${point.date?' · '+esc(point.date.slice(0,10)):''}</span><strong>${esc(series.name)}</strong><span class="detail-value">${esc(result(point))}${point.carried?'<small>Carried from Week '+point.sourceWeek+'</small>':point.reps==null?'':'<small>× '+point.reps+' reps</small>'}</span>`;
      card.querySelectorAll('[data-point]').forEach(el=>{el.classList.remove('is-selected');el.setAttribute('aria-pressed','false');});
      earlierButton.textContent=`Earlier record ${earlierIndex+1} of ${earlier.length} · Next`;earlierIndex=(earlierIndex+1)%earlier.length;
     };

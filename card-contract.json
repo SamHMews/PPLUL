@@ -3,7 +3,7 @@
     {
       "start": "function cardMarkup(",
       "end": "function dayView(",
-      "sha": "19696345b90b9d471dd1b7dd6f727120779ef67f8b92be279107d0ce4c86ac75"
+      "sha": "b642620a8ceecf96baa716824c8753672902726195011f49d4f899479ba3145c"
     },
     {
       "start": "function repsMarkup(",
@@ -23,7 +23,7 @@
     {
       "start": "function updateCardCompletion(",
       "end": "function bindCard(",
-      "sha": "449f0a3630bf31f6773ce2f6df0e3056ad3a2eec75652a30a3f49f90d386c18e"
+      "sha": "54f1f9f551f1f56094eeba582a4738415d0812021e29e60874f31c14bb6dd82b"
     }
   ],
   "files": {
