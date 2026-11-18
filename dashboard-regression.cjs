@@ -27,6 +27,15 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
  Object.assign(e,{weight:0,reps:5,effort:'right'});assert.equal(m.completeEntry(blank,e.id),true);assert.equal(m.completeEntry(blank,e.id),false);
  const withDips=structuredClone(s);withDips.seed.push({id:'dips',name:'Dips',day:'Push',weight:20,reps:8});withDips.archives[0].days.Push.entries.push({...e,id:'dips',name:'Dips'});const frozen=JSON.stringify(withDips);
  assert(!report.progressData(withDips,'Push').series.some(e=>e.id==='dips'));assert(!report.progressData(withDips,'Push').unassigned.some(e=>e.id==='dips'));assert.equal(JSON.stringify(withDips),frozen,'Exclude Dips from reports without deleting history');
+ const chartSource={points:[{week:2,weight:0,loadUnit:'unknown',unit:'machine weight',reps:8},{week:5,weight:20,loadUnit:'lb',unit:'machine weight',reps:9}]};
+ const chartSnapshot=JSON.stringify(chartSource),carried=report.displayPoints(chartSource,[1,2,3,4,5,6],'unknown');
+ assert.deepEqual(carried.map(p=>[p.week,p.weight,!!p.carried]),[[2,0,false],[3,0,true],[4,0,true]]);
+ assert.equal(carried[1].reps,null);assert.equal(carried[2].sourceWeek,2);assert.equal(JSON.stringify(chartSource),chartSnapshot);
+ assert.deepEqual(report.displayPoints(chartSource,[1,2,3,4,5,6],'lb').map(p=>[p.week,p.weight,!!p.carried]),[[5,20,false],[6,20,true]]);
+ assert.equal(report.displayPoints({points:[]},[1,2],'kg').length,0);
+ const bw=m.initialState().active.days.Upper,bodyweight=bw.entries.find(e=>e.id==='bodyweight-tricep-extensions');
+ assert.deepEqual(m.missingExerciseFields(bodyweight),['reps','effort']);assert.throws(()=>m.completeEntry(bw,bodyweight.id),/Log reps/);Object.assign(bodyweight,{reps:8,effort:'right'});m.completeEntry(bw,bodyweight.id);assert.equal(bodyweight.weight,null);assert.equal(m.weightText(bodyweight),'Bodyweight');
+ const renamed=m.initialState();renamed.active.days.Upper.entries.find(e=>e.id==='upper-curl').name='Barbell or Cable Curl';const migratedName=m.migrateState(renamed);assert.equal(migratedName.active.days.Upper.entries.find(e=>e.id==='upper-curl').name,'Barbell Curl');assert.deepEqual(m.migrateState(migratedName),migratedName);
  console.log('PASS reporting source accuracy, gaps, units, zero values, removed exercises and immutable data; logging contracts unchanged');
  if(process.env.MODEL_ONLY)return;
  const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://localhost').pathname;fs.readFile(path.join(root,name==='/'?'index.html':name),(e,body)=>{if(e){res.writeHead(404).end();return;}res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.png')?'image/png':'text/html');res.end(body);});});
@@ -99,8 +108,8 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   assert.equal(await current.locator('.chart-weight-title').innerText(),'Weight (kg)');
   assert.equal(await current.locator('.chart-week-title').innerText(),'Training week');
   assert.equal(await current.locator('.chart-grid').count(),7,'Numeric axis uses 10-unit steps');
-  assert.equal((await current.locator('.chart-line').getAttribute('d')).match(/M/g).length,2,'Missing week breaks path');
-  assert(!/[CQ]/.test(await current.locator('.chart-line').getAttribute('d')),'Straight segments only');
+  assert.equal(await current.locator('.chart-line:not(.chart-carried)').getAttribute('d'),'');assert.equal((await current.locator('.chart-carried').getAttribute('d')).match(/L/g).length,2,'Both sides of a missed week use dotted segments');assert.equal(await current.locator('.chart-carried').getAttribute('stroke-dasharray'),'1 5');await current.locator('[aria-label^="Bench Press, Week 2"]').click();assert.match(await current.locator('.point-detail').innerText(),/Week 2.*Missed.*50 kg.*Carried from Week 1/s);assert(!/reps/.test(await current.locator('.point-detail').innerText()));await p.evaluate(async()=>{await Promise.all(document.getAnimations().map(a=>a.finished.catch(()=>{})));});await p.screenshot({path:'test-artifacts/missed-week-graph.png'});
+  assert(!/[CQ]/.test(await current.locator('.chart-line:not(.chart-carried)').getAttribute('d')),'Straight segments only');
   const selectedPoint=current.locator('[aria-label^="Bench Press, Week 3"]');
   await selectedPoint.focus();await p.keyboard.press('Enter');assert.equal(await selectedPoint.getAttribute('aria-pressed'),'true');
   assert.match(await current.locator('.point-detail').innerText(),/Week 3.*60 kg/s);
@@ -122,7 +131,7 @@ const sha=s=>crypto.createHash('sha256').update(s.replace(/^\uFEFF/,'').replaceA
   await p.evaluate(async()=>{const db=await import('./storage.js'),s=await db.readState(),rev=s.revision;s.active.days.Push.entries[0].loadUnit='lb';await db.persist(s,rev);});
   await p.reload();await p.locator('.graph-card.is-current').waitFor();await p.addStyleTag({content:':root{--shell-safe-top:47px;--shell-safe-bottom:34px}'});
   assert.equal(await current.locator('.graph-unit').innerText(),'lb');assert.equal(await current.locator('.chart-weight-title').innerText(),'Weight (lb)');
-  await current.getByRole('combobox').selectOption('kg');assert.equal(await current.locator('[data-point]').count(),1);
+  await current.getByRole('combobox').selectOption('kg');assert.equal(await current.locator('[data-point]').count(),2);
   await current.getByRole('combobox').selectOption('lb');assert.equal(await current.locator('[data-point]').count(),1);
   await p.locator('.graph-deck').focus();for(let i=0;i<4;i++){await p.keyboard.press('ArrowRight');await p.waitForTimeout(350);}
   assert.equal(await current.locator('h2').innerText(),'Lateral Raises');assert.equal(await current.locator('.graph-unit').innerText(),'','Unknown unit has no suffix');assert.equal(await current.locator('.chart-weight-title').innerText(),'Weight');
